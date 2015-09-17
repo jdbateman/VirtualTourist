@@ -56,6 +56,10 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         // Initialize the longTapRecognizer
         initLongPressRecognizer()
         
+        //TODO - need to turn off gesture recognizer to see if it is screwing with single tap detection in mapview
+        
+        //TODO - init map with existing pins - do a fetchall or use fetchREsultsController delgate method
+        
         // Initialize the fetchResultsController
         initFetchedResultsController()
     }
@@ -231,10 +235,34 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     }
     
     // Recognize tap on pin
-    func mapView(mapView: MKMapView!, didDeselectAnnotationView view: MKAnnotationView!) {
+    func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
         println("pin selected")
         
-        // TODO - display PhotoAlbumViewController
+        switch state {
+        case .AddPin:
+            println(".AddPin mode")
+            // TODO - display PhotoAlbumViewController
+        case .Edit:
+            // delete the selected pin
+            
+            // get the annotation for the annotation view
+            let annotation: MKAnnotation = view.annotation
+            
+            // fetch pin by coordinate from the context
+            var pin: Pin? = fetchPin(atCoordinate: annotation.coordinate)
+            
+            // delete the selected pin
+            if let pin = pin {
+                deletePin(pin)
+            }
+            
+            // TODO: - need to remove the annotation from the MKMapView
+            self.mapView.removeAnnotation(annotation)
+            
+        default:
+            return
+        }
+        
     }
     
     //TODO - remove...
@@ -248,8 +276,34 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         }
     }
 
+    /* 
+    @brief Return the Pin instance from the persistent store that matches the specified coordinate.
+    @discussion Typically we would only expect a single pin to match coordinate. It is possible that more than one pin has the same map coordinate. However, even in that case it is a better user experience to delete a single pin per tap in Edit mode. Therefor, this function will only return the first pin matching the specified coordinate.
+    */
+    func fetchPin(atCoordinate coordinate: CLLocationCoordinate2D) -> Pin? {
+        // Create and execute the fetch request
+        let error: NSErrorPointer = nil
+        let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
+        let predicateLat = NSPredicate(format: "latitude == %@", NSNumber(double: coordinate.latitude))
+        let predicateLon = NSPredicate(format: "longitude == %@", NSNumber(double: coordinate.longitude))
+        let predicate = NSCompoundPredicate(type: NSCompoundPredicateType.AndPredicateType, subpredicates: [predicateLat, predicateLon])
+        fetchRequest.predicate = predicate
+        let results = sharedContext.executeFetchRequest(fetchRequest, error: error)
+  
+        // Check for Errors
+        if error != nil {
+            println("Error in fectchAllActors(): \(error)")
+        }
+        
+        // Return the first result, or nil
+        if let results = results {
+            return (results[0] as! Pin)
+        } else {
+            return nil
+        }
+    }
     
-    // MARK: Tap gesture recognizer
+    // MARK: Long press gesture recognizer
     
     func initLongPressRecognizer() {
         longPressRecognizer = UILongPressGestureRecognizer(target: self, action: Selector("handleLongPress:"))
@@ -271,29 +325,26 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         }
     }
     
-    /* User long pressed on the map view. Add a pin. */
+    /* User long pressed on the map view. Add a pin if in .AddPin mode, else ignore. */
     func handleLongPress(recognizer: UILongPressGestureRecognizer) {
         
         if(recognizer.state == UIGestureRecognizerState.Began) {
             // gesture started
             println("UIGestureRecognizerStateBegan: long press on pin")
             
-            // get coordinates of touch in view
-            let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
-            println("viewPoint = \(viewPoint)")  // TODO: remove
-            
-            // get coordinates of touch in the map's gps coordinate space.
-            let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
-            println("mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
-            
-            // Create a pin (annotation) based on the calculated gps coordinates.
-            let pin: Pin = createPin(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
-            
-            // Display the pin on the map.
-            showPinOnMap(pin)
-            
-            // TODO: persist the pin
-            savePin()
+            switch state {
+            case .AddPin:
+                // get coordinates of touch in view
+                let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
+                println("viewPoint = \(viewPoint)")  // TODO: remove
+                
+                // Create a new Pin instance, display on the map, and save to the context.
+                createPinAtPoint(viewPoint)
+            case .Edit:
+                return
+            default:
+                return
+            }
         }
         
         if(recognizer.state == UIGestureRecognizerState.Changed) {
@@ -310,8 +361,31 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     
     // MARK: Pin manipulation
     
-    /* Create a new Pin and return it. */
-    func createPin(#latitude: Double, longitude: Double) -> Pin {
+    /* 
+    @brief Create a new Pin instance for the specified point in the view, display it on the map, and save to the context.
+    @param (in) viewPoint - parent UIView of mapView
+    */
+    func createPinAtPoint(viewPoint: CGPoint) {
+        // get coordinates of touch in view
+//        let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
+//        println("viewPoint = \(viewPoint)")  // TODO: remove
+        
+        // get coordinates of touch in the map's gps coordinate space.
+        let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
+        println("mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
+        
+        // Create a pin (annotation) based on the calculated gps coordinates.
+        let pin: Pin = createPinAtCoordinate(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
+        
+        // Display the pin on the map.
+        showPinOnMap(pin)
+        
+        // TODO: persist the pin
+        savePin()
+    }
+    
+    /* Create a new Pin at the specified 2D map coordinate and return it. */
+    func createPinAtCoordinate(#latitude: Double, longitude: Double) -> Pin {
         var dict = [String: AnyObject]()
         dict[Pin.Keys.latitude] = latitude
         dict[Pin.Keys.longitude] = longitude
@@ -320,7 +394,13 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     }
     
     /* Save the specified annotation to the context. */
-    func savePin(/*annotation: MKPointAnnotation*/) {
+    func savePin() {
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
+    
+    /* Remove the specified pin instance from the context. */
+    func deletePin(pin: Pin) {
+        sharedContext.deleteObject(pin)
         CoreDataStackManager.sharedInstance().saveContext()
     }
     
@@ -339,6 +419,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         // Tell the OS that the mapView needs to be refreshed.
         self.mapView.setNeedsDisplay()
     }
+    
 }
 
 
