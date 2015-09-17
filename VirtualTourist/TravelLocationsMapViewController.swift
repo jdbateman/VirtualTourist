@@ -55,8 +55,11 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         
         // Initialize the longTapRecognizer
         initLongPressRecognizer()
+        
+        // Initialize the fetchResultsController
+        initFetchedResultsController()
     }
-
+    
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -107,24 +110,6 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         state = .AddPin
     }
     
-    func insertNewObject(sender: AnyObject) {
-        let context = self.fetchedResultsController.managedObjectContext
-        let entity = self.fetchedResultsController.fetchRequest.entity!
-        let newManagedObject = NSEntityDescription.insertNewObjectForEntityForName(entity.name!, inManagedObjectContext: context) as! NSManagedObject
-             
-        // If appropriate, configure the new managed object.
-        // Normally you should use accessor methods, but using KVC here avoids the need to add a custom class to the template.
-        newManagedObject.setValue(NSDate(), forKey: "timeStamp")
-             
-        // Save the context.
-        var error: NSError? = nil
-        if !context.save(&error) {
-            // Replace this implementation with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-            //println("Unresolved error \(error), \(error.userInfo)")
-            abort()
-        }
-    }
 
     // MARK: - Segues
 
@@ -136,88 +121,41 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
 //            }
         }
     }
-/*
-    // MARK: - Table View
 
-    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        return self.fetchedResultsController.sections?.count ?? 0
-    }
-
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
-        return sectionInfo.numberOfObjects
-    }
-
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("Cell", forIndexPath: indexPath) as! UITableViewCell
-        self.configureCell(cell, atIndexPath: indexPath)
-        return cell
-    }
-
-    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
-    }
-
-    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-        if editingStyle == .Delete {
-            let context = self.fetchedResultsController.managedObjectContext
-            context.deleteObject(self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject)
-                
-            var error: NSError? = nil
-            if !context.save(&error) {
-                // Replace this implementation with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                //println("Unresolved error \(error), \(error.userInfo)")
-                abort()
-            }
-        }
-    }
-*/
-    func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
-            let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
-        cell.textLabel!.text = object.valueForKey("timeStamp")!.description
-    }
-
+    
     // MARK: - Fetched results controller
-
-    var fetchedResultsController: NSFetchedResultsController {
-        if _fetchedResultsController != nil {
-            return _fetchedResultsController!
+    
+    lazy var fetchedResultsController: NSFetchedResultsController = {
+        // Create the fetch request
+        let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
+        
+        // Add a sort descriptors to enforce a sort order on the results.
+//        let sortDescriptorLat = NSSortDescriptor(key: "latitude", ascending: false)
+//        let sortDescriptorLon = NSSortDescriptor(key: "longitude", ascending: false)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
+        
+        // Create the Fetched Results Controller
+        let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext:
+            self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
+        
+        // Return the fetched results controller. It will be the value of the lazy variable
+        return fetchedResultsController
+    } ()
+    
+    /* Perform fetch to initialize the fetchedResultsController. */
+    func initFetchedResultsController() {
+        var error: NSError? = nil
+        
+        fetchedResultsController.performFetch(&error)
+        
+        if let error = error {
+            println("Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
+            // TODO: Replace this implementation with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate.
+            abort()
         }
-        
-        let fetchRequest = NSFetchRequest()
-        // Edit the entity name as appropriate.
-        let entity = NSEntityDescription.entityForName("Event", inManagedObjectContext: self.sharedContext)
-        fetchRequest.entity = entity
-        
-        // Set the batch size to a suitable number.
-        fetchRequest.fetchBatchSize = 20
-        
-        // Edit the sort key as appropriate.
-        let sortDescriptor = NSSortDescriptor(key: "timeStamp", ascending: false)
-        let sortDescriptors = [sortDescriptor]
-        
-        fetchRequest.sortDescriptors = [sortDescriptor]
-        
-        // Edit the section name key path and cache name if appropriate.
-        // nil for section name key path means "no sections".
-        let aFetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: "Master")
-        aFetchedResultsController.delegate = self
-        _fetchedResultsController = aFetchedResultsController
-        
-    	var error: NSError? = nil
-    	if !_fetchedResultsController!.performFetch(&error) {
-    	     // Replace this implementation with code to handle the error appropriately.
-    	     // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development. 
-             //println("Unresolved error \(error), \(error.userInfo)")
-    	     abort()
-    	}
-        
-        return _fetchedResultsController!
-    }    
-    var _fetchedResultsController: NSFetchedResultsController? = nil
-
+    }
+    
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
 //        self.tableView.beginUpdates()
     }
@@ -348,10 +286,14 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
             let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
             println("mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
             
-            // Display a pin on the map at the calculated gps coordinates.
-            showPinOnMap(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
+            // Create a pin (annotation) based on the calculated gps coordinates.
+            let pin: Pin = createPin(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
+            
+            // Display the pin on the map.
+            showPinOnMap(pin)
             
             // TODO: persist the pin
+            savePin()
         }
         
         if(recognizer.state == UIGestureRecognizerState.Changed) {
@@ -364,31 +306,149 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
             println("UIGestureRecognizerStateEnded")
         }
     }
-   
-    /* Display a pin on the MKMapView at the specified gps coordinates, and center the map on it. */
-    func showPinOnMap(#latitude: Double, longitude: Double) {
-        
-        // The lat and long are used to create a CLLocationCoordinates2D instance.
-        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude )
-        
-        // Here we create the annotation and set its coordiate, title, and subtitle properties
-        var annotation = MKPointAnnotation()
-        annotation.coordinate = coordinate
-        // TODO.. remove: annotation.title = "\(location.firstName) \(location.lastName)"
-        // TODO.. remove: annotation.subtitle = location.mediaURL
-        
-        // Add the annotation to an array of annotations.
+    
+    
+    // MARK: Pin manipulation
+    
+    /* Create a new Pin and return it. */
+    func createPin(#latitude: Double, longitude: Double) -> Pin {
+        var dict = [String: AnyObject]()
+        dict[Pin.Keys.latitude] = latitude
+        dict[Pin.Keys.longitude] = longitude
+        let pin = Pin(dictionary: dict, context: sharedContext)
+        return pin
+    }
+    
+    /* Save the specified annotation to the context. */
+    func savePin(/*annotation: MKPointAnnotation*/) {
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
+    
+    /* Display the specified pin on the MKMapView */
+    func showPinOnMap(pin: Pin) {
+        // Add the annotation to a local array of annotations.
         var annotations = [MKPointAnnotation]()
-        annotations.append(annotation)
+        annotations.append(pin.annotation)
         
-        // Add the annotations to the map.
+        // Add the annotation(s) to the map.
         self.mapView.addAnnotations(annotations)
         
-        // Center the map on the coordinates.
-        self.mapView.setCenterCoordinate(coordinate, animated: true)
+        // Center the map on the coordinate(s).
+        self.mapView.setCenterCoordinate(pin.coordinate, animated: true)
         
         // Tell the OS that the mapView needs to be refreshed.
         self.mapView.setNeedsDisplay()
     }
 }
 
+
+/*
+var fetchedResultsController: NSFetchedResultsController {
+if _fetchedResultsController != nil {
+return _fetchedResultsController!
+}
+
+let fetchRequest = NSFetchRequest()
+// Edit the entity name as appropriate.
+let entity = NSEntityDescription.entityForName("Event", inManagedObjectContext: self.sharedContext)
+fetchRequest.entity = entity
+
+// Set the batch size to a suitable number.
+fetchRequest.fetchBatchSize = 20
+
+// Edit the sort key as appropriate.
+let sortDescriptor = NSSortDescriptor(key: "timeStamp", ascending: false)
+let sortDescriptors = [sortDescriptor]
+
+fetchRequest.sortDescriptors = [sortDescriptor]
+
+// Edit the section name key path and cache name if appropriate.
+// nil for section name key path means "no sections".
+let aFetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: "Master")
+aFetchedResultsController.delegate = self
+_fetchedResultsController = aFetchedResultsController
+
+var error: NSError? = nil
+if !_fetchedResultsController!.performFetch(&error) {
+// Replace this implementation with code to handle the error appropriately.
+// abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+//println("Unresolved error \(error), \(error.userInfo)")
+abort()
+}
+
+return _fetchedResultsController!
+}
+var _fetchedResultsController: NSFetchedResultsController? = nil
+*/
+
+//    func insertNewObject(sender: AnyObject) {
+//        let context = self.fetchedResultsController.managedObjectContext
+//        let entity = self.fetchedResultsController.fetchRequest.entity!
+//        let newManagedObject = NSEntityDescription.insertNewObjectForEntityForName(entity.name!, inManagedObjectContext: context) as! NSManagedObject
+//
+//        // If appropriate, configure the new managed object.
+//        // Normally you should use accessor methods, but using KVC here avoids the need to add a custom class to the template.
+//        newManagedObject.setValue(NSDate(), forKey: "timeStamp")
+//
+//        // Save the context.
+//        var error: NSError? = nil
+//        if !context.save(&error) {
+//            // Replace this implementation with code to handle the error appropriately.
+//            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+//            //println("Unresolved error \(error), \(error.userInfo)")
+//            abort()
+//        }
+//    }
+
+///* Create a new Pin and save the context. */
+//func insertNewObject(sender: AnyObject) {
+//    let pin = Pin(context: sharedContext)
+//    
+//    pin.timeStamp = NSDate()
+//    
+//    CoreDataStackManager.sharedInstance().saveContext()
+//}
+
+/*
+// MARK: - Table View
+
+override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+return self.fetchedResultsController.sections?.count ?? 0
+}
+
+override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
+return sectionInfo.numberOfObjects
+}
+
+override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+let cell = tableView.dequeueReusableCellWithIdentifier("Cell", forIndexPath: indexPath) as! UITableViewCell
+self.configureCell(cell, atIndexPath: indexPath)
+return cell
+}
+
+override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+// Return false if you do not want the specified item to be editable.
+return true
+}
+
+override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+if editingStyle == .Delete {
+let context = self.fetchedResultsController.managedObjectContext
+context.deleteObject(self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject)
+
+var error: NSError? = nil
+if !context.save(&error) {
+// Replace this implementation with code to handle the error appropriately.
+// abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+//println("Unresolved error \(error), \(error.userInfo)")
+abort()
+}
+}
+}
+
+func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
+let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
+cell.textLabel!.text = object.valueForKey("timeStamp")!.description
+}
+*/
