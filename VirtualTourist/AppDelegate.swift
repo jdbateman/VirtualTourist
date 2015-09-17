@@ -1,13 +1,15 @@
-//
-//  AppDelegate.swift
-//  VirtualTourist
-//
-//  Created by john bateman on 9/15/15.
-//  Copyright (c) 2015 John Bateman. All rights reserved.
-//
+/*!
+@header AppDelegate.swift
+
+VirtualTourist
+
+The AppDelegate class provides entry points to initialize the app, handle state transitions, and respond to notifications for the app.
+
+@author John Bateman. Created on 9/15/15
+@copyright Copyright (c) 2015 John Bateman. All rights reserved.
+*/
 
 import UIKit
-import CoreData
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
