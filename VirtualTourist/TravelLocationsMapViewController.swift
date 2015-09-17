@@ -56,10 +56,6 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         // Initialize the longTapRecognizer
         initLongPressRecognizer()
         
-        //TODO - need to turn off gesture recognizer to see if it is screwing with single tap detection in mapview
-        
-        //TODO - init map with existing pins - do a fetchall or use fetchREsultsController delgate method
-        
         // Initialize the fetchResultsController
         initFetchedResultsController()
     }
@@ -69,6 +65,9 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         
         // Add the long press gesture recognizer to the map view.
         addLongPressRecognizer()
+        
+        // redraw all pins on mapview
+        refreshPins()
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -284,6 +283,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         // Create and execute the fetch request
         let error: NSErrorPointer = nil
         let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
         let predicateLat = NSPredicate(format: "latitude == %@", NSNumber(double: coordinate.latitude))
         let predicateLon = NSPredicate(format: "longitude == %@", NSNumber(double: coordinate.longitude))
         let predicate = NSCompoundPredicate(type: NSCompoundPredicateType.AndPredicateType, subpredicates: [predicateLat, predicateLon])
@@ -302,6 +302,21 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
             return nil
         }
     }
+    
+    /* Query context for all pins. Return array of Pin instances, or an empty array if no results or query failed. */
+    func fetchAllPins() -> [Pin] {
+        let errorPointer: NSErrorPointer = nil
+        let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
+        let results = sharedContext.executeFetchRequest(fetchRequest, error:errorPointer)
+        if errorPointer != nil {
+            println("Error in fectchAllActors(): \(errorPointer)")
+        }
+        return results as? [Pin] ?? [Pin]()
+    }
+    
+    
+    
     
     // MARK: Long press gesture recognizer
     
@@ -420,6 +435,29 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         self.mapView.setNeedsDisplay()
     }
     
+    /* Redraw all the persisted pins on the mapview. */
+    func refreshPins() {
+        // clear all pins from the mapView
+        let annotations = mapView.annotations //add this if you want to leave the pin of the user's current location .filter { $0 !== mapView.userLocation }
+        mapView.removeAnnotations(annotations)
+        
+        // query the context for all pins
+        let pins = fetchAllPins()
+        
+        var annotationsToAdd = [MKAnnotation]()
+        for pin in pins {
+            annotationsToAdd.append(pin.annotation)
+            //showPinOnMap(pin)
+        }
+        
+        // add all the pins to the mapView
+        mapView.addAnnotations(annotationsToAdd)
+        
+        // draw the pins
+        dispatch_async(dispatch_get_main_queue()) {
+            self.mapView.setNeedsDisplay()
+        }
+    }
 }
 
 
