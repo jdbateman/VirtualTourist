@@ -101,23 +101,29 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     
     /* The edit button was selected. Modify UI and state to put the controller in edit mode. */
     func onEditButtonTap() {
-        println("Edit button tapped.")
-        
-        // TODO: Dispay "Tap Pins to Delete" label. Animate in from bottom.
+        // Dispay "Tap Pins to Delete" label. Animate in from bottom.
         hintContainerView.hidden = false
         //self.hintContainerView.alpha = 0.0
+        
+        // Set initial position of hintContainerView beyond the bottom of the visible screen.
         self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height, self.view.frame.size.width, 80)
+        
+        // Animate
         UIView.animateWithDuration(0.5, animations: {
-            //self.hintContainerView.alpha = 1.0
-            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.view.frame.size.width, self.view.frame.size.height - 80)
+            // Shrink height of mapContainerView by 80.
+            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 64.0 - 80, self.view.frame.size.width, self.view.frame.size.height)
+            
+            // Move hintContainerView up 80 (into visible region of view).
             self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height - 80, self.view.frame.size.width, 80)
+            
+            //self.hintContainerView.alpha = 1.0
         })
         
-        // TODO: Hide the Edit button. Show the Done button.
+        // Hide the Edit button. Show the Done button.
         let doneButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: "onDoneButtonTap")
         self.navigationItem.rightBarButtonItem = doneButton
         
-        // TODO: Change the VC state to edit mode.
+        // Change the VC state to edit mode.
         state = .Edit
     }
     
@@ -125,32 +131,36 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     func onDoneButtonTap() {
         println("Done button tapped.")
         
-        // TODO: Remove the "Tap Pins to Delete" label. Animate down.
-        hintContainerView.hidden = true
-//        self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height, self.view.frame.size.width, 80)
+        // Remove the "Tap Pins to Delete" label. Animate down.
+        
+        // Animate
         UIView.animateWithDuration(0.5, animations: {
-            //self.hintContainerView.alpha = 1.0
-            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.view.frame.size.width, self.view.frame.size.height + 80)
-            self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height - 80, self.view.frame.size.width, 0)
-        })
+            // Increase the height of the mapContainerView by 80.
+            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + 64, self.view.frame.size.width, self.view.frame.size.height - 64)
+            
+            // Increase the height of the mapView by 80
+            self.mapView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y - 64, self.view.frame.size.width, self.view.frame.size.height)
+            
+            // move hintContainerView down 80 (off visible screen).
+            self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height, self.view.frame.size.width, 80)
+            },
+            completion: {
+                (value: Bool) in
+                // Remove the "Tap Pins to Delete" label.
+                self.hintContainerView.hidden = true
+            })
         
-        todo - this doesn't make the map draw full height, but it will if you switch to another app and back. debug this...
-        dispatch_async(dispatch_get_main_queue()) {
-            self.mapView.setNeedsDisplay()
-            self.view.setNeedsDisplay()
-        }
-        
-        // TODO: Hide the Done button. Show the Edit button.
+        // Hide the Done button. Show the Edit button.
         let editButton = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: "onEditButtonTap")
         self.navigationItem.rightBarButtonItem = editButton
         
-        // TODO: Change the VC state to AddPin mode.
+        // Change the VC state to AddPin mode.
         state = .AddPin
     }
     
 
     // MARK: - Segues
-
+// TODO
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         if segue.identifier == "showDetail" {
 //            if let indexPath = self.tableView.indexPathForSelectedRow() {
@@ -603,3 +613,15 @@ let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSMa
 cell.textLabel!.text = object.valueForKey("timeStamp")!.description
 }
 */
+
+// DEBUG:
+//println("\nonDoneButtonTap(): after animation -------------------------------------")
+//println("view frame final (y, height) = \(self.view.frame.origin.y), \(self.view.frame.size.height)")
+//println("mapContainerView frame final (y, height) = \(self.mapContainerView.frame.origin.y), \(self.mapContainerView.frame.size.height)")
+//println("mapView frame final (y, height) = \(self.mapView.frame.origin.y), \(self.mapView.frame.size.height)")
+//println("hintContainerView frame final (y, height) = \(self.hintContainerView.frame.origin.y), \(self.hintContainerView.frame.size.height)")
+
+//        dispatch_async(dispatch_get_main_queue()) {
+//            self.mapView.setNeedsDisplay()
+//            self.view.setNeedsDisplay()
+//        }
