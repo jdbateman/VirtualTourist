@@ -21,6 +21,9 @@ import MapKit
 class TravelLocationsMapViewController: UIViewController, NSFetchedResultsControllerDelegate, MKMapViewDelegate, UIGestureRecognizerDelegate  {
 
     @IBOutlet weak var mapView: MKMapView!
+    @IBOutlet weak var mapContainerView: UIView!
+    @IBOutlet weak var hintContainerView: UIView!
+    
     
     /* The user interaction state of the view controller. */
     enum ControllerState {
@@ -50,13 +53,16 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         let editButton = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: "onEditButtonTap")
         self.navigationItem.rightBarButtonItem = editButton
         
-        // set map view delegate
+        // Hide the edit mode hint view.
+        hintContainerView.hidden = true
+        
+        // set map view delegate.
         mapView.delegate = self
         
-        // Initialize the longTapRecognizer
+        // Initialize the longTapRecognizer.
         initLongPressRecognizer()
         
-        // Initialize the fetchResultsController
+        // Initialize the fetchResultsController.
         initFetchedResultsController()
     }
     
@@ -69,6 +75,14 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         // redraw all pins on mapview
         refreshPins()
     }
+    
+//    override func viewDidAppear(animated: Bool) {
+//        super.viewDidAppear(animated)
+//        
+//        UIView.animateWithDuration(1.5, animations: {
+//            self.hintContainerView.alpha = 1.0
+//        })
+//    }
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
@@ -90,6 +104,14 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         println("Edit button tapped.")
         
         // TODO: Dispay "Tap Pins to Delete" label. Animate in from bottom.
+        hintContainerView.hidden = false
+        //self.hintContainerView.alpha = 0.0
+        self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height, self.view.frame.size.width, 80)
+        UIView.animateWithDuration(0.5, animations: {
+            //self.hintContainerView.alpha = 1.0
+            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.view.frame.size.width, self.view.frame.size.height - 80)
+            self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height - 80, self.view.frame.size.width, 80)
+        })
         
         // TODO: Hide the Edit button. Show the Done button.
         let doneButton = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: "onDoneButtonTap")
@@ -104,6 +126,19 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         println("Done button tapped.")
         
         // TODO: Remove the "Tap Pins to Delete" label. Animate down.
+        hintContainerView.hidden = true
+//        self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height, self.view.frame.size.width, 80)
+        UIView.animateWithDuration(0.5, animations: {
+            //self.hintContainerView.alpha = 1.0
+            self.mapContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.view.frame.size.width, self.view.frame.size.height + 80)
+            self.hintContainerView.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y + self.view.frame.size.height - 80, self.view.frame.size.width, 0)
+        })
+        
+        todo - this doesn't make the map draw full height, but it will if you switch to another app and back. debug this...
+        dispatch_async(dispatch_get_main_queue()) {
+            self.mapView.setNeedsDisplay()
+            self.view.setNeedsDisplay()
+        }
         
         // TODO: Hide the Done button. Show the Edit button.
         let editButton = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: "onEditButtonTap")
@@ -124,7 +159,6 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
 //            }
         }
     }
-
     
     // MARK: - Fetched results controller
     
@@ -133,8 +167,6 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
         
         // Add a sort descriptors to enforce a sort order on the results.
-//        let sortDescriptorLat = NSSortDescriptor(key: "latitude", ascending: false)
-//        let sortDescriptorLon = NSSortDescriptor(key: "longitude", ascending: false)
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
         
         // Create the Fetched Results Controller
