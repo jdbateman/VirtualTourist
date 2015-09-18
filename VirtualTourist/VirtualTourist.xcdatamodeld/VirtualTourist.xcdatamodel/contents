@@ -6,14 +6,21 @@
         </attribute>
         <userInfo/>
     </entity>
+    <entity name="MapRegion" representedClassName="MapRegion" syncable="YES">
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="spanLatitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="spanLongitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+    </entity>
     <entity name="Picture" syncable="YES"/>
     <entity name="Pin" representedClassName="Pin" syncable="YES">
-        <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
-        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="latitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="longitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
     </entity>
     <elements>
         <element name="Event" positionX="261" positionY="189" width="128" height="60"/>
         <element name="Pin" positionX="261" positionY="198" width="128" height="30"/>
         <element name="Picture" positionX="270" positionY="207" width="128" height="45"/>
+        <element name="MapRegion" positionX="288" positionY="225" width="128" height="30"/>
     </elements>
 </model>

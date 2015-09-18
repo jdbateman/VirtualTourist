@@ -3,7 +3,7 @@
 
 VirtualTourist
 
-The TravelLocationsMapViewController class is the initial view controller. It displays a MapView and collection of annotations (refered to as pins). The controller supports two interaction modes: AddPin mode and Edit mode. The controller supports the following functionality:
+The TravelLocationsMapViewController class is the initial view controller. It displays a MapView and collection of annotations (also refered to as pins) persisted with CoreData. The controller supports two interaction modes: AddPin mode and Edit mode. The controller supports the following functionality:
 - The controller starts in AddPin mode. Long press on the MapView to drop a new pin on the map.
 - Tap a pin to launch the PhotoAlbumViewController.
 - Select the Edit button to change interaction to Edit mode. In edit mode selecting a pin deletes the pin.
@@ -24,6 +24,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     @IBOutlet weak var mapContainerView: UIView!
     @IBOutlet weak var hintContainerView: UIView!
     
+    var mapRegion: MapRegion?
     
     /* The user interaction state of the view controller. */
     enum ControllerState {
@@ -64,6 +65,9 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         
         // Initialize the fetchResultsController.
         initFetchedResultsController()
+        
+        // Initialize the map region
+        initMapRegion()
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -316,7 +320,13 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
 //            }
         }
     }
-
+    
+    /* The region displayed by the mapview has just changed. */
+    func mapView(mapView: MKMapView!, regionDidChangeAnimated animated: Bool) {
+        println("region changed: \(mapView.region.center.latitude, mapView.region.center.longitude)")
+        saveMapRegion()
+    }
+    
     /* 
     @brief Return the Pin instance from the persistent store that matches the specified coordinate.
     @discussion Typically we would only expect a single pin to match coordinate. It is possible that more than one pin has the same map coordinate. However, even in that case it is a better user experience to delete a single pin per tap in Edit mode. Therefor, this function will only return the first pin matching the specified coordinate.
@@ -357,7 +367,32 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         return results as? [Pin] ?? [Pin]()
     }
     
+    /* Query the CoreData context for the MapRegion entity */
+    func fetchMapRegion() -> [MapRegion] {
+        // Create and execute the fetch request
+        let error: NSErrorPointer = nil
+        let fetchRequest = NSFetchRequest(entityName: MapRegion.entityName)
+        let results = sharedContext.executeFetchRequest(fetchRequest, error: error)
+        
+        // Check for Errors
+        if error != nil {
+            println("Error in fetchMapRegion(): \(error)")
+        }
+        
+        return results as? [MapRegion] ?? [MapRegion]()
+    }
     
+    /* Query context for all MapRegion objects. Return array of MapRegion instances, or an empty array if no results or query failed. */
+    func fetchAllMapRegions() -> [MapRegion] {
+        let errorPointer: NSErrorPointer = nil
+        let fetchRequest = NSFetchRequest(entityName: MapRegion.entityName)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
+        let results = sharedContext.executeFetchRequest(fetchRequest, error:errorPointer)
+        if errorPointer != nil {
+            println("Error in fetchAllMapRegions(): \(errorPointer)")
+        }
+        return results as? [MapRegion] ?? [MapRegion]()
+    }
     
     
     // MARK: Long press gesture recognizer
@@ -416,6 +451,74 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     }
     
     
+    // MARK: MapRegion functions
+    
+    /* Set the map region to either the persisted region or to a default centered on North America. */
+    func initMapRegion() {
+        let regions = fetchMapRegion()
+        if regions.count > 0 {
+            self.mapRegion = regions[0]
+        } else {
+            self.mapRegion = nil
+        }
+        if let region = self.mapRegion {
+            // restore persisted region
+            self.mapView.region = region.region
+        } else {
+            // set a default region
+            let location = CLLocationCoordinate2DMake(39.50, -98.35) // center of North America
+            let span = MKCoordinateSpanMake(30, 30)
+            let region = MKCoordinateRegionMake(location, span)
+            self.mapView.region = region
+            
+            // save to VC's MapRegion property
+            var dict = [String: AnyObject]()
+            dict[MapRegion.Keys.latitude] = location.latitude
+            dict[MapRegion.Keys.longitude] = location.longitude
+            dict[MapRegion.Keys.spanLatitude] = span.latitudeDelta
+            dict[MapRegion.Keys.spanLongitude] = span.longitudeDelta
+            self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+        }
+        
+        logMapViewRegion()
+    }
+    
+    /* Save this view controller's mapRegion to the context. */
+    func saveMapRegion() {
+        
+        // delete any existing MapRegion values in the Core Data store.
+        deleteAllPersistedMapRegions()
+        
+        // save the mapView's region to this view controller's mapRegion property
+        var dict = [String: AnyObject]()
+        dict[MapRegion.Keys.latitude] = self.mapView.region.center.latitude
+        dict[MapRegion.Keys.longitude] = self.mapView.region.center.longitude
+        dict[MapRegion.Keys.spanLatitude] = self.mapView.region.span.latitudeDelta
+        dict[MapRegion.Keys.spanLongitude] = self.mapView.region.span.longitudeDelta
+        self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+        
+        // persist the controller's mapRegion property
+        CoreDataStackManager.sharedInstance().saveContext()
+        
+        println("saved new region: \(self.mapRegion!.latitude, self.mapRegion!.longitude, self.mapRegion!.spanLatitude, self.mapRegion!.spanLongitude)")
+    }
+    
+    // delete any existing MapRegion values in the Core Data store.
+    func deleteAllPersistedMapRegions() {
+        var regions = fetchAllMapRegions()
+        for region: MapRegion in regions {
+            println("deleting a persisted region: \(region.latitude, region.longitude, region.spanLatitude, region.spanLongitude)")
+            sharedContext.deleteObject(region)
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
+    }
+    
+    func logMapViewRegion() {
+        let region = self.mapView.region
+        println("map region: \(region.center.latitude, region.center.longitude, region.span.latitudeDelta, region.span.longitudeDelta)")
+    }
+    
+    
     // MARK: Pin manipulation
     
     /* 
@@ -471,7 +574,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         self.mapView.addAnnotations(annotations)
         
         // Center the map on the coordinate(s).
-        self.mapView.setCenterCoordinate(pin.coordinate, animated: true)
+        //self.mapView.setCenterCoordinate(pin.coordinate, animated: true)
         
         // Tell the OS that the mapView needs to be refreshed.
         self.mapView.setNeedsDisplay()

@@ -17,6 +17,7 @@
 		9E8FBA031BA91BA400A8E099 /* VirtualTouristTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA021BA91BA400A8E099 /* VirtualTouristTests.swift */; };
 		9E8FBA0D1BA9BDF500A8E099 /* CoreDataStackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA0C1BA9BDF500A8E099 /* CoreDataStackManager.swift */; };
 		9E8FBA121BAB1D3000A8E099 /* Pin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA111BAB1D3000A8E099 /* Pin.swift */; };
+		9E8FBA141BACA13B00A8E099 /* MapRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA131BACA13B00A8E099 /* MapRegion.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 		9E8FBA021BA91BA400A8E099 /* VirtualTouristTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualTouristTests.swift; sourceTree = "<group>"; };
 		9E8FBA0C1BA9BDF500A8E099 /* CoreDataStackManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataStackManager.swift; sourceTree = "<group>"; };
 		9E8FBA111BAB1D3000A8E099 /* Pin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pin.swift; sourceTree = "<group>"; };
+		9E8FBA131BACA13B00A8E099 /* MapRegion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MapRegion.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 				9E8FB9E91BA91BA400A8E099 /* VirtualTourist.xcdatamodeld */,
 				9E8FBA0C1BA9BDF500A8E099 /* CoreDataStackManager.swift */,
 				9E8FBA111BAB1D3000A8E099 /* Pin.swift */,
+				9E8FBA131BACA13B00A8E099 /* MapRegion.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -241,6 +244,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */,
+				9E8FBA141BACA13B00A8E099 /* MapRegion.swift in Sources */,
 				9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */,
 				9E8FB9ED1BA91BA400A8E099 /* TravelLocationsMapViewController.swift in Sources */,
 				9E8FBA121BAB1D3000A8E099 /* Pin.swift in Sources */,
