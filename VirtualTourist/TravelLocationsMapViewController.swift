@@ -279,23 +279,24 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         return pinView
     }
     
-    // Recognize tap on pin
+    /* Handler for touch on a pin. */
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
         println("pin selected")
         
+        // get the annotation for the annotation view
+        let annotation: MKAnnotation = view.annotation
+        
+        // fetch pin by coordinate from the context
+        var pin: Pin? = fetchPin(atCoordinate: annotation.coordinate)
+        
         switch state {
         case .AddPin:
-            println(".AddPin mode")
-            // TODO - display PhotoAlbumViewController
+            // display PhotoAlbumViewController
+            var storyboard = UIStoryboard (name: "Main", bundle: nil)
+            var controller = storyboard.instantiateViewControllerWithIdentifier("PhotoAlbumControllerID") as! PhotoAlbumViewController
+            controller.pin = pin
+            self.navigationController?.pushViewController(controller, animated: true)
         case .Edit:
-            // delete the selected pin
-            
-            // get the annotation for the annotation view
-            let annotation: MKAnnotation = view.annotation
-            
-            // fetch pin by coordinate from the context
-            var pin: Pin? = fetchPin(atCoordinate: annotation.coordinate)
-            
             // delete the selected pin
             if let pin = pin {
                 deletePin(pin)

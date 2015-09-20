@@ -19,6 +19,9 @@
 		9E8FBA121BAB1D3000A8E099 /* Pin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA111BAB1D3000A8E099 /* Pin.swift */; };
 		9E8FBA141BACA13B00A8E099 /* MapRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FBA131BACA13B00A8E099 /* MapRegion.swift */; };
 		9ED979431BAE07E4002FBE65 /* PhotoAlbumViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED979421BAE07E4002FBE65 /* PhotoAlbumViewController.swift */; };
+		9ED979451BAE2ED1002FBE65 /* PhotoAlbumCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */; };
+		9ED979471BAE6A8E002FBE65 /* pluto.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9ED979461BAE6A8E002FBE65 /* pluto.jpg */; };
+		9ED979491BAE6A99002FBE65 /* Udacity.png in Resources */ = {isa = PBXBuildFile; fileRef = 9ED979481BAE6A99002FBE65 /* Udacity.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +51,9 @@
 		9E8FBA111BAB1D3000A8E099 /* Pin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pin.swift; sourceTree = "<group>"; };
 		9E8FBA131BACA13B00A8E099 /* MapRegion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MapRegion.swift; sourceTree = "<group>"; };
 		9ED979421BAE07E4002FBE65 /* PhotoAlbumViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAlbumViewController.swift; sourceTree = "<group>"; };
+		9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAlbumCell.swift; sourceTree = "<group>"; };
+		9ED979461BAE6A8E002FBE65 /* pluto.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = pluto.jpg; sourceTree = "<group>"; };
+		9ED979481BAE6A99002FBE65 /* Udacity.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Udacity.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,6 +100,7 @@
 				9E8FBA101BA9CEF700A8E099 /* ViewControllers */,
 				9E8FBA0E1BA9BE0C00A8E099 /* Model */,
 				9E8FB9E51BA91BA400A8E099 /* Supporting Files */,
+				9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */,
 			);
 			path = VirtualTourist;
 			sourceTree = "<group>";
@@ -102,6 +109,8 @@
 			isa = PBXGroup;
 			children = (
 				9E8FB9E61BA91BA400A8E099 /* Info.plist */,
+				9ED979461BAE6A8E002FBE65 /* pluto.jpg */,
+				9ED979481BAE6A99002FBE65 /* Udacity.png */,
 				9E8FB9F31BA91BA400A8E099 /* Images.xcassets */,
 				9E8FB9F51BA91BA400A8E099 /* LaunchScreen.xib */,
 			);
@@ -226,8 +235,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9ED979471BAE6A8E002FBE65 /* pluto.jpg in Resources */,
 				9E8FB9F21BA91BA400A8E099 /* Main.storyboard in Resources */,
 				9E8FB9F71BA91BA400A8E099 /* LaunchScreen.xib in Resources */,
+				9ED979491BAE6A99002FBE65 /* Udacity.png in Resources */,
 				9E8FB9F41BA91BA400A8E099 /* Images.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -247,6 +258,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */,
+				9ED979451BAE2ED1002FBE65 /* PhotoAlbumCell.swift in Sources */,
 				9E8FBA141BACA13B00A8E099 /* MapRegion.swift in Sources */,
 				9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */,
 				9ED979431BAE07E4002FBE65 /* PhotoAlbumViewController.swift in Sources */,
