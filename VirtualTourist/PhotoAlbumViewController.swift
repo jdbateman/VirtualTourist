@@ -20,6 +20,8 @@ import MapKit
 
 class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate/*, NSFetchedResultsControllerDelegate*/ {
 
+    var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
+
     let BOUNDING_BOX_HALF_WIDTH = 1.0
     let BOUNDING_BOX_HALF_HEIGHT = 1.0
     let LAT_MIN = -90.0
@@ -47,7 +49,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     @IBOutlet weak var collectionView: UICollectionView!
     
     @IBOutlet weak var noImagesLabel: UILabel!
-        
+    
+    var newCollectionButton: UIBarButtonItem? = nil
+    
     /* The pin to be displayed on the map. Should be set by the source view controller. */
     var pin:Pin?
     
@@ -72,12 +76,15 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         // configure the toolbar items
         let flexButtonLeft = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil)
-        let newCollectionButton = UIBarButtonItem(title: "New Collection", style: .Plain, target: self, action: "onNewCollectionButtonTap")
+        newCollectionButton = UIBarButtonItem(title: "New Collection", style: .Plain, target: self, action: "onNewCollectionButtonTap")
         let flexButtonRight = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil)
-        self.setToolbarItems([flexButtonLeft, newCollectionButton, flexButtonRight], animated: true)
+        self.setToolbarItems([flexButtonLeft, newCollectionButton!, flexButtonRight], animated: true)
 
         // enable display of the navigation controller's toolbar
         self.navigationController?.setToolbarHidden(false, animated: true)
+        
+        // initially disable the New Collection button
+        newCollectionButton!.enabled = false
         
         // set the layout for the collection view
 //        setCollectionViewLayout()
@@ -127,6 +134,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         // fetch a new set of images
         searchPhotosByLatLon()
+        
+        // disable the New Collection button.
+        newCollectionButton!.enabled = false
     }
     
 
@@ -186,20 +196,26 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
-        let cell = collectionView.cellForItemAtIndexPath(indexPath) as! PhotoAlbumCell
+        self.flickrImages.removeAtIndex(indexPath.row)
         
-        // Whenever a cell is tapped we will toggle its presence in the selectedIndexes array
-        if let index = find(selectedIndexes, indexPath) {
-            selectedIndexes.removeAtIndex(index)
-        } else {
-            selectedIndexes.append(indexPath)
+        // force the cells to update now that the image has been downloaded
+        dispatch_async(dispatch_get_main_queue()) {
+            self.collectionView.reloadData()
         }
-        
-        // Then reconfigure the cell
-        configureCell(cell, atIndexPath: indexPath)
-        
-        // And update the bottom button
-        //TODO - use in future: updateBottomButton()
+
+// let cell = collectionView.cellForItemAtIndexPath(indexPath) as! PhotoAlbumCell
+//        // Whenever a cell is tapped we will toggle its presence in the selectedIndexes array
+//        if let index = find(selectedIndexes, indexPath) {
+//            selectedIndexes.removeAtIndex(index)
+//        } else {
+//            selectedIndexes.append(indexPath)
+//        }
+//        
+//        // Then reconfigure the cell
+//        configureCell(cell, atIndexPath: indexPath)
+//        
+//        // And update the bottom button
+//        //TODO - use in future: updateBottomButton()
     }
 
 
@@ -221,6 +237,25 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        collectionView.collectionViewLayout = layout
 //    }
     
+    /* show activity indicator */
+    func startActivityIndicator() {
+        activityIndicator.center = self.view.center
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.WhiteLarge
+        view.addSubview(activityIndicator)
+        activityIndicator.startAnimating()
+        
+        println("startActivityIndicator()")
+    }
+    
+    /* hide acitivity indicator */
+    func stopActivityIndicator() {
+        dispatch_async(dispatch_get_main_queue()) {
+            self.activityIndicator.stopAnimating()
+        }
+    
+        println("stopActivityIndicator()")
+    }
 
     
     // Configure Cell
@@ -240,6 +275,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // If the cell is "selected" it's color panel is grayed out
         // we use the Swift `find` function to see if the indexPath is in the array
 
+        // TODO - remove code below. Don't need to grey on selection as we are ditching the multiple selection user interaction.
         if let index = find(selectedIndexes, indexPath) {
             cell.imageView.alpha = 0.05
         } else {
@@ -262,6 +298,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                     "format": Flickr.Constants.DATA_FORMAT,
                     "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
                 ]
+                
+                startActivityIndicator()
+                
                 Flickr.getImageFromFlickrBySearch(methodArguments) {
                     success, errorString, pictures in
                     
@@ -275,8 +314,21 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //                    pictures.removeAll(keepCapacity: false) // TODO: debug only. remove.
                     self.flickrImages = pictures
                     
+                    // TODO - can i move the view functionality out of this function to separate it from the data code?
+                    
+                    // halt the activity indicator
+                    self.stopActivityIndicator()
+                    
+                    // enable the New Collection button.
+                    self.newCollectionButton!.enabled = true
+                    
                     // force the cells to update now that the image has been downloaded
                     dispatch_async(dispatch_get_main_queue()) {
+                        
+                        // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
+                        self.view.setNeedsLayout()
+                        self.view.setNeedsDisplay()
+                        
                         self.collectionView.reloadData()
                     }
                 }
