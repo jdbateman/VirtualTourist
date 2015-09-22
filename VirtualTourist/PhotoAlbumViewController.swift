@@ -59,6 +59,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     var updatedIndexPaths: [NSIndexPath]!
     
     var flickrImage: UIImage?
+    var flickrImages = [UIImage]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -136,7 +137,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 10 // TODO - replace with fetchedResultsController
+        return self.flickrImages.count // TODO - replace with fetchedResultsController
 //        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
 //        
 //        println("number Of Cells: \(sectionInfo.numberOfObjects)")
@@ -194,7 +195,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     // Configure Cell
     func configureCell(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
         
-        if let image = self.flickrImage {
+        var image: UIImage? = self.flickrImages[indexPath.row]
+        if let image = image {
             cell.imageView.image = image
         } else {
             cell.imageView.image = UIImage(named: "pluto.jpg")
@@ -233,9 +235,12 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                     success, errorString, pictures in
                     
                     // save the picture
-                    if pictures.count > 0 {
-                        self.flickrImage = pictures[0]
-                    }
+//                    if pictures.count > 0 {
+//                        self.flickrImage = pictures[0]
+//                    }
+                    
+                    // save the pictures to this view controller's collection
+                    self.flickrImages = pictures
                     
                     // force the cells to update now that the image has been downloaded
                     dispatch_async(dispatch_get_main_queue()) {

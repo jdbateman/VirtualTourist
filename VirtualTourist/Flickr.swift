@@ -115,40 +115,59 @@ class Flickr {
                     if totalPhotosVal > 0 {
                         if let photosArray = photosDictionary["photo"] as? [[String: AnyObject]] {
                             
-                            let randomPhotoIndex = Int(arc4random_uniform(UInt32(photosArray.count)))
-                            let photoDictionary = photosArray[randomPhotoIndex] as [String: AnyObject]
+//                            let randomPhotoIndex = Int(arc4random_uniform(UInt32(photosArray.count)))
+//                            let photoDictionary = photosArray[randomPhotoIndex] as [String: AnyObject]
                             
-                            let photoTitle = photoDictionary["title"] as? String
-                            let imageUrlString = photoDictionary["url_m"] as? String
-                            let imageURL = NSURL(string: imageUrlString!)
+                            var picturesToReturn = [UIImage]()
                             
-                            if let imageData = NSData(contentsOfURL: imageURL!) {
-                                dispatch_async(dispatch_get_main_queue(), {
-//                                    //self.defaultLabel.alpha = 0.0
-//                                    self.flickrImage = UIImage(data: imageData)
+                            let numPhotosToFetch = min(totalPhotosVal, 15)
+                            for i in 0..<numPhotosToFetch {
+//                            for var i = 0; i<numPhotosToFetch; i++ {
+                                let photoDictionary = photosArray[i] as [String: AnyObject]
+                                
+                            // for photoDictionary in photosArray {
+                            
+                                // get the metadata for this photo
+                                let photoTitle = photoDictionary["title"] as? String  //TOOD - don't need this line, but useful for debug
+                                let imageUrlString = photoDictionary["url_m"] as? String
+                                let imageURL = NSURL(string: imageUrlString!)
+                                
+                                // get the binary image data
+                                if let imageData = NSData(contentsOfURL: imageURL!) {
+//                                    dispatch_async(dispatch_get_main_queue(), {
+    //                                    //self.defaultLabel.alpha = 0.0
+    //                                    self.flickrImage = UIImage(data: imageData)
+                                        
+                                        // force the cells to update now that the image has been downloaded
+    //                                    dispatch_async(dispatch_get_main_queue()) {
+    //                                        self.collectionView.reloadData() // TODO - move to view controller
+    //                                    }
+                                        
+                                        //                                    if methodArguments["bbox"] != nil {
+                                        //                                        self.photoTitleLabel.text = "\(self.getLatLonString()) \(photoTitle!)"
+                                        //                                    } else {
+                                        //                                        self.photoTitleLabel.text = "\(photoTitle!)"
+                                        //                                    }
                                     
-                                    // force the cells to update now that the image has been downloaded
-//                                    dispatch_async(dispatch_get_main_queue()) {
-//                                        self.collectionView.reloadData() // TODO - move to view controller
-//                                    }
                                     
-                                    //                                    if methodArguments["bbox"] != nil {
-                                    //                                        self.photoTitleLabel.text = "\(self.getLatLonString()) \(photoTitle!)"
-                                    //                                    } else {
-                                    //                                        self.photoTitleLabel.text = "\(photoTitle!)"
-                                    //                                    }
-                                    if let image = UIImage(data: imageData) {
-                                        completionHandler(success: true, error: nil, pictures: [image])
-                                    } else {
-                                        let error = NSError(domain: "cannot convert image data", code: 904, userInfo: nil)
-                                        completionHandler(success: false, error: error, pictures: [] as [UIImage])
-                                    }
-                                })
-                            } else {
-                                println("Image does not exist at \(imageURL)")
-                                let error = NSError(domain: "Image does not exist at \(imageURL)", code: 904, userInfo: nil)
-                                completionHandler(success: false, error: error, pictures: [] as [UIImage])
+                                        // Convert the image data to a UIImage object and append to the array to be returned.
+                                        if let image = UIImage(data: imageData) {
+                                            picturesToReturn.append(image)
+                                            //completionHandler(success: true, error: nil, pictures: [image])
+                                        }
+//                                        else {
+//                                            let error = NSError(domain: "cannot convert image data", code: 904, userInfo: nil)
+//                                            completionHandler(success: false, error: error, pictures: [] as [UIImage])
+//                                        }
+//                                    })
+                                } else {
+                                    println("Image does not exist at \(imageURL)")
+                                    let error = NSError(domain: "Image does not exist at \(imageURL)", code: 904, userInfo: nil)
+                                    completionHandler(success: false, error: error, pictures: [] as [UIImage])
+                                }
                             }
+                            
+                            completionHandler(success: true, error: nil, pictures: picturesToReturn)
                         } else {
                             println("Cant find key 'photo' in \(photosDictionary)")
                             let error = NSError(domain: "Cant find key 'photo' in \(photosDictionary)", code: 903, userInfo: nil)
