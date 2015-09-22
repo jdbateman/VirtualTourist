@@ -22,6 +22,7 @@
 		9ED979451BAE2ED1002FBE65 /* PhotoAlbumCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */; };
 		9ED979471BAE6A8E002FBE65 /* pluto.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9ED979461BAE6A8E002FBE65 /* pluto.jpg */; };
 		9ED979491BAE6A99002FBE65 /* Udacity.png in Resources */ = {isa = PBXBuildFile; fileRef = 9ED979481BAE6A99002FBE65 /* Udacity.png */; };
+		9ED9794B1BB0A83F002FBE65 /* Flickr.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED9794A1BB0A83F002FBE65 /* Flickr.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +55,7 @@
 		9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAlbumCell.swift; sourceTree = "<group>"; };
 		9ED979461BAE6A8E002FBE65 /* pluto.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = pluto.jpg; sourceTree = "<group>"; };
 		9ED979481BAE6A99002FBE65 /* Udacity.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Udacity.png; sourceTree = "<group>"; };
+		9ED9794A1BB0A83F002FBE65 /* Flickr.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Flickr.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +143,7 @@
 				9E8FBA0C1BA9BDF500A8E099 /* CoreDataStackManager.swift */,
 				9E8FBA111BAB1D3000A8E099 /* Pin.swift */,
 				9E8FBA131BACA13B00A8E099 /* MapRegion.swift */,
+				9ED9794A1BB0A83F002FBE65 /* Flickr.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -259,6 +262,7 @@
 			files = (
 				9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */,
 				9ED979451BAE2ED1002FBE65 /* PhotoAlbumCell.swift in Sources */,
+				9ED9794B1BB0A83F002FBE65 /* Flickr.swift in Sources */,
 				9E8FBA141BACA13B00A8E099 /* MapRegion.swift in Sources */,
 				9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */,
 				9ED979431BAE07E4002FBE65 /* PhotoAlbumViewController.swift in Sources */,

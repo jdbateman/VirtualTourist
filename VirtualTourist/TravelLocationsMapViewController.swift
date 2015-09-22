@@ -486,17 +486,25 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     
     /* Save this view controller's mapRegion to the context. */
     func saveMapRegion() {
-        
+
         // delete any existing MapRegion values in the Core Data store.
-        deleteAllPersistedMapRegions()
+        //deleteAllPersistedMapRegions()
         
         // save the mapView's region to this view controller's mapRegion property
-        var dict = [String: AnyObject]()
-        dict[MapRegion.Keys.latitude] = self.mapView.region.center.latitude
-        dict[MapRegion.Keys.longitude] = self.mapView.region.center.longitude
-        dict[MapRegion.Keys.spanLatitude] = self.mapView.region.span.latitudeDelta
-        dict[MapRegion.Keys.spanLongitude] = self.mapView.region.span.longitudeDelta
-        self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+//        var dict = [String: AnyObject]()
+//        dict[MapRegion.Keys.latitude] = self.mapView.region.center.latitude
+//        dict[MapRegion.Keys.longitude] = self.mapView.region.center.longitude
+//        dict[MapRegion.Keys.spanLatitude] = self.mapView.region.span.latitudeDelta
+//        dict[MapRegion.Keys.spanLongitude] = self.mapView.region.span.longitudeDelta
+//        self.mapRegion = MapRegion(dictionary: dict, context: sharedContext) <-- this creates a new instance in core data, and requires the preceding deleteAllPersistedMapRegions() call to clean out any existing instances from core data before saving this new instance. 
+        
+        // Instead it is better to simply update the view controller's mapRegion property. Core data will update this instance when saveContext() is called instead of creating a new instance.
+        
+        self.mapRegion?.latitude = self.mapView.region.center.latitude
+        self.mapRegion?.longitude = self.mapView.region.center.longitude
+        self.mapRegion?.spanLatitude = self.mapView.region.span.latitudeDelta
+        self.mapRegion?.spanLongitude = self.mapView.region.span.longitudeDelta
+        
         
         // persist the controller's mapRegion property
         CoreDataStackManager.sharedInstance().saveContext()
@@ -504,8 +512,9 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         println("saved new region: \(self.mapRegion!.latitude, self.mapRegion!.longitude, self.mapRegion!.spanLatitude, self.mapRegion!.spanLongitude)")
     }
     
-    // delete any existing MapRegion values in the Core Data store.
+    /* Delete any existing MapRegion values in the Core Data store. */
     func deleteAllPersistedMapRegions() {
+        
         var regions = fetchAllMapRegions()
         for region: MapRegion in regions {
             println("deleting a persisted region: \(region.latitude, region.longitude, region.spanLatitude, region.spanLongitude)")
@@ -515,6 +524,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     }
     
     func logMapViewRegion() {
+        
         let region = self.mapView.region
         println("map region: \(region.center.latitude, region.center.longitude, region.span.latitudeDelta, region.span.longitudeDelta)")
     }
@@ -527,6 +537,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     @param (in) viewPoint - parent UIView of mapView
     */
     func createPinAtPoint(viewPoint: CGPoint) {
+        
         // get coordinates of touch in view
 //        let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
 //        println("viewPoint = \(viewPoint)")  // TODO: remove

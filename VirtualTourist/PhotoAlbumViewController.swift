@@ -20,19 +20,26 @@ import MapKit
 
 class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate/*, NSFetchedResultsControllerDelegate*/ {
 
-    let BASE_URL = "https://api.flickr.com/services/rest/"
-    let METHOD_NAME = "flickr.photos.search"
-    let API_KEY = "fd2dca183606947b2f6c7ef036ae4e32"
-    let EXTRAS = "url_m"
-    let SAFE_SEARCH = "1"
-    let DATA_FORMAT = "json"
-    let NO_JSON_CALLBACK = "1"
     let BOUNDING_BOX_HALF_WIDTH = 1.0
     let BOUNDING_BOX_HALF_HEIGHT = 1.0
     let LAT_MIN = -90.0
     let LAT_MAX = 90.0
     let LON_MIN = -180.0
     let LON_MAX = 180.0
+    
+//    let BASE_URL = "https://api.flickr.com/services/rest/"
+//    let METHOD_NAME = "flickr.photos.search"
+//    let API_KEY = "fd2dca183606947b2f6c7ef036ae4e32"
+//    let EXTRAS = "url_m"
+//    let SAFE_SEARCH = "1"
+//    let DATA_FORMAT = "json"
+//    let NO_JSON_CALLBACK = "1"
+//    let BOUNDING_BOX_HALF_WIDTH = 1.0
+//    let BOUNDING_BOX_HALF_HEIGHT = 1.0
+//    let LAT_MIN = -90.0
+//    let LAT_MAX = 90.0
+//    let LON_MIN = -180.0
+//    let LON_MAX = 180.0
     
     /* the map at the top of the view */
     @IBOutlet weak var mapView: MKMapView!
@@ -214,15 +221,27 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
                 //self.photoTitleLabel.text = "Searching..."
                 let methodArguments = [
-                    "method": METHOD_NAME,
-                    "api_key": API_KEY,
+                    "method": Flickr.Constants.METHOD_NAME,
+                    "api_key": Flickr.Constants.API_KEY,
                     "bbox": createBoundingBoxString(),
-                    "safe_search": SAFE_SEARCH,
-                    "extras": EXTRAS,
-                    "format": DATA_FORMAT,
-                    "nojsoncallback": NO_JSON_CALLBACK
+                    "safe_search": Flickr.Constants.SAFE_SEARCH,
+                    "extras": Flickr.Constants.EXTRAS,
+                    "format": Flickr.Constants.DATA_FORMAT,
+                    "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
                 ]
-                getImageFromFlickrBySearch(methodArguments)
+                Flickr.getImageFromFlickrBySearch(methodArguments) {
+                    success, errorString, pictures in
+                    
+                    // save the picture
+                    if pictures.count > 0 {
+                        self.flickrImage = pictures[0]
+                    }
+                    
+                    // force the cells to update now that the image has been downloaded
+                    dispatch_async(dispatch_get_main_queue()) {
+                        self.collectionView.reloadData()
+                    }
+                }
             } else {
                 println("invalid latitude or longitude")
 //                if !validLatitude(self.pin?.coordinate.latitude) && !validLongitude(self.pin?.coordinate.longitude) {
@@ -244,7 +263,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        }
     }
     
-    
+/*
     /* Function makes first request to get a random page, then it makes a request to get an image with the random page */
     func getImageFromFlickrBySearch(methodArguments: [String : AnyObject]) {
         
@@ -378,7 +397,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         return (!urlVars.isEmpty ? "?" : "") + join("&", urlVars)
     }
-
+*/
     /* Check to make sure the latitude falls within [-90, 90] */
     func validLatitude(lat: Double?) -> Bool {
         if let latitude : Double? = lat {
