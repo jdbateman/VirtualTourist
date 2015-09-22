@@ -46,6 +46,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     @IBOutlet weak var collectionView: UICollectionView!
     
+    @IBOutlet weak var noImagesLabel: UILabel!
+        
     /* The pin to be displayed on the map. Should be set by the source view controller. */
     var pin:Pin?
     
@@ -137,6 +139,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if self.flickrImages.count > 0 {
+            self.noImagesLabel.hidden = true
+            self.collectionView.hidden = false
+        } else {
+            self.noImagesLabel.hidden = false
+            self.collectionView.hidden = true
+        }
         return self.flickrImages.count // TODO - replace with fetchedResultsController
 //        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
 //        
@@ -240,6 +249,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //                    }
                     
                     // save the pictures to this view controller's collection
+//                    var pictures = pictures
+//                    pictures.removeAll(keepCapacity: false) // TODO: debug only. remove.
                     self.flickrImages = pictures
                     
                     // force the cells to update now that the image has been downloaded
