@@ -78,6 +78,9 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         
         // redraw all pins on mapview
         refreshPins()
+        
+        // turn the navigation controller's toolbar off
+        self.hidesBottomBarWhenPushed = true
     }
     
 //    override func viewDidAppear(animated: Bool) {

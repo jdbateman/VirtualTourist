@@ -70,6 +70,15 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             showPinOnMap(pin)
         }
         
+        // configure the toolbar items
+        let flexButtonLeft = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil)
+        let newCollectionButton = UIBarButtonItem(title: "New Collection", style: .Plain, target: self, action: "onNewCollectionButtonTap")
+        let flexButtonRight = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil)
+        self.setToolbarItems([flexButtonLeft, newCollectionButton, flexButtonRight], animated: true)
+
+        // enable display of the navigation controller's toolbar
+        self.navigationController?.setToolbarHidden(false, animated: true)
+        
         // set the layout for the collection view
 //        setCollectionViewLayout()
     }
@@ -107,6 +116,19 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // Pass the selected object to the new view controller.
     }
     */
+    
+    // MARK: buttons
+    
+    func onNewCollectionButtonTap() {
+        println("New Collection button selected.")
+        
+        // empty the photo album
+        self.flickrImages.removeAll(keepCapacity: true)
+        
+        // fetch a new set of images
+        searchPhotosByLatLon()
+    }
+    
 
     /* Display the specified pin on the MKMapView. This function sets the span. */
     func showPinOnMap(pin: Pin) {
@@ -225,8 +247,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         }
     }
     
-    
-     func searchPhotosByLatLon() {
+    /* Initializes the photo album (self.flickrImages) with the results of a flickr api image search by geo coordinates. */
+    func searchPhotosByLatLon() {
         
 //        if !self.latitudeTextField.text.isEmpty && !self.longitudeTextField.text.isEmpty {
             if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {

@@ -120,7 +120,7 @@ class Flickr {
                             
                             var picturesToReturn = [UIImage]()
                             
-                            let numPhotosToFetch = min(totalPhotosVal, 15)
+                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, 15)
                             for i in 0..<numPhotosToFetch {
 //                            for var i = 0; i<numPhotosToFetch; i++ {
                                 let photoDictionary = photosArray[i] as [String: AnyObject]
