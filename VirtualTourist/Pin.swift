@@ -17,10 +17,12 @@ class Pin: NSManagedObject {
     
     @NSManaged var latitude: NSNumber
     @NSManaged var longitude: NSNumber
+    @NSManaged var photos: [Photo]
     
     struct Keys {
         static let latitude: String = "latitude"
         static let longitude: String = "longitude"
+        static let photos = "photos"
     }
     
     static let entityName = "Pin"

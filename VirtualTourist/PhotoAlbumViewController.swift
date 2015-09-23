@@ -29,20 +29,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     let LON_MIN = -180.0
     let LON_MAX = 180.0
     
-//    let BASE_URL = "https://api.flickr.com/services/rest/"
-//    let METHOD_NAME = "flickr.photos.search"
-//    let API_KEY = "fd2dca183606947b2f6c7ef036ae4e32"
-//    let EXTRAS = "url_m"
-//    let SAFE_SEARCH = "1"
-//    let DATA_FORMAT = "json"
-//    let NO_JSON_CALLBACK = "1"
-//    let BOUNDING_BOX_HALF_WIDTH = 1.0
-//    let BOUNDING_BOX_HALF_HEIGHT = 1.0
-//    let LAT_MIN = -90.0
-//    let LAT_MAX = 90.0
-//    let LON_MIN = -180.0
-//    let LON_MAX = 180.0
-    
     /* the map at the top of the view */
     @IBOutlet weak var mapView: MKMapView!
     
@@ -64,8 +50,12 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     var deletedIndexPaths: [NSIndexPath]!
     var updatedIndexPaths: [NSIndexPath]!
     
-    var flickrImage: UIImage?
-    var flickrImages = [UIImage]()
+    //var flickrImage: UIImage?
+    //var flickrImages = [UIImage]()
+    var flickrPhotos = [Photo]()
+    // TODO flickrPhotos keeps growing every time I do a search
+    // TODO photos are no longer filling in after deletes
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -85,6 +75,14 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         // initially disable the New Collection button
         newCollectionButton!.enabled = false
+        
+        // Initialize the fetchResultsController.
+        initFetchedResultsController()
+        
+        // Initilize flickrPhotos from the view controller's current pin.photos
+        if let pin = pin {
+            flickrPhotos = pin.photos
+        }
         
         // set the layout for the collection view
 //        setCollectionViewLayout()
@@ -129,8 +127,15 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     func onNewCollectionButtonTap() {
         println("New Collection button selected.")
         
-        // empty the photo album
-        self.flickrImages.removeAll(keepCapacity: true)
+        // empty the photo album - TODO: remove this line
+        //self.flickrImages.removeAll(keepCapacity: true)
+        
+        // remove all photos associated with this pin
+        if let pin = pin {
+            for photo in pin.photos {
+                deletePhoto(photo)
+            }
+        }
         
         // fetch a new set of images
         searchPhotosByLatLon()
@@ -171,14 +176,16 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if self.flickrImages.count > 0 {
+        let count =  self.flickrPhotos.count  // TODO - remove: self.flickrImages.count
+        
+        if count > 0 {
             self.noImagesLabel.hidden = true
             self.collectionView.hidden = false
         } else {
             self.noImagesLabel.hidden = false
             self.collectionView.hidden = true
         }
-        return self.flickrImages.count // TODO - replace with fetchedResultsController
+        return count // TODO - replace with fetchedResultsController
 //        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
 //        
 //        println("number Of Cells: \(sectionInfo.numberOfObjects)")
@@ -196,7 +203,11 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
-        self.flickrImages.removeAtIndex(indexPath.row)
+        // remove the image from teh VC's collection - TODO: remove this line
+        //self.flickrImages.removeAtIndex(indexPath.row)
+        
+        // remove the Photo object from the core data store.
+        deletePhoto(self.flickrPhotos[indexPath.row])
         
         // force the cells to update now that the image has been downloaded
         dispatch_async(dispatch_get_main_queue()) {
@@ -261,7 +272,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     // Configure Cell
     func configureCell(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
         
-        var image: UIImage? = self.flickrImages[indexPath.row]
+        //var image: UIImage? = self.flickrImages[indexPath.row] // TODO - remove
+        var image: UIImage? = (self.flickrPhotos[indexPath.row] as Photo).image
+        
         if let image = image {
             cell.imageView.image = image
         } else {
@@ -276,14 +289,14 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // we use the Swift `find` function to see if the indexPath is in the array
 
         // TODO - remove code below. Don't need to grey on selection as we are ditching the multiple selection user interaction.
-        if let index = find(selectedIndexes, indexPath) {
-            cell.imageView.alpha = 0.05
-        } else {
-            cell.imageView.alpha = 1.0
-        }
+//        if let index = find(selectedIndexes, indexPath) {
+//            cell.imageView.alpha = 0.05
+//        } else {
+//            cell.imageView.alpha = 1.0
+//        }
     }
     
-    /* Initializes the photo album (self.flickrImages) with the results of a flickr api image search by geo coordinates. */
+    /* Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates. */
     func searchPhotosByLatLon() {
         
 //        if !self.latitudeTextField.text.isEmpty && !self.longitudeTextField.text.isEmpty {
@@ -312,7 +325,12 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                     // save the pictures to this view controller's collection
 //                    var pictures = pictures
 //                    pictures.removeAll(keepCapacity: false) // TODO: debug only. remove.
-                    self.flickrImages = pictures
+                    // self.flickrImages = pictures // TODO - remove
+                    
+                    // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+                    for image in pictures {
+                        self.saveImageAsPhoto(image)
+                    }
                     
                     // TODO - can i move the view functionality out of this function to separate it from the data code?
                     
@@ -352,6 +370,74 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //            }
 //        }
     }
+    
+    
+    // MARK: - Core Data
+    
+    /* core data managed object context */
+    lazy var sharedContext: NSManagedObjectContext = {
+        return CoreDataStackManager.sharedInstance().managedObjectContext!
+    }()
+    
+    
+    /* Persist a new Photo instance of the specified UIImage, setting the Photo's inverse relationship to it's Pin, and save the new Photo to the view controller's flickrPhotos collection. */
+    func saveImageAsPhoto(image: UIImage?) {
+        
+        if let image = image {
+            
+            // create a new Photo instance
+            var dict = [String: AnyObject]()
+            dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+            dict[Photo.keys.pin] = self.pin
+            var photo = Photo(dictionary:dict, context: sharedContext)
+            
+            // save the Photo to the View controller's collection of Photo objects
+            self.flickrPhotos.append(photo)
+            
+            // save the core data context
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
+    }
+    
+    // TODO - replace flickrPhotos with NSFetchedResultsController
+    
+    /* Remove the Photo object from the Core data store */
+    func deletePhoto(photo: Photo) {
+        self.sharedContext.deleteObject(photo)
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
+    
+    // MARK: - Fetched results controller
+    
+    lazy var fetchedResultsController: NSFetchedResultsController = {
+        // Create the fetch request
+        let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
+        
+        // Add a sort descriptors to enforce a sort order on the results.
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
+        
+        // Create the Fetched Results Controller
+        let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext:
+            self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
+        
+        // Return the fetched results controller. It will be the value of the lazy variable
+        return fetchedResultsController
+        } ()
+    
+    /* Perform fetch to initialize the fetchedResultsController. */
+    func initFetchedResultsController() {
+        var error: NSError? = nil
+        
+        fetchedResultsController.performFetch(&error)
+        
+        if let error = error {
+            println("Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
+            // TODO: Replace this implementation with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate.
+            abort()
+        }
+    }
+    
     
 /*
     /* Function makes first request to get a random page, then it makes a request to get an image with the random page */

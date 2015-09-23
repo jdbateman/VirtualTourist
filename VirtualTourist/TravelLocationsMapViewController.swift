@@ -328,7 +328,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     /* The region displayed by the mapview has just changed. */
     func mapView(mapView: MKMapView!, regionDidChangeAnimated animated: Bool) {
         println("region changed: \(mapView.region.center.latitude, mapView.region.center.longitude)")
-        saveMapRegion()
+        updateAndSaveMapRegion()
     }
     
     /* 
@@ -457,38 +457,74 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
     
     // MARK: MapRegion functions
     
-    /* Set the map region to either the persisted region or to a default centered on North America. */
+    /* 
+    @brief Set the mapView's region to either the persisted region or to a default centered on North America.
+    @discussion Setting the MKMapView's region causes the mapView to call it's mapView:mapView:regionDidChangeAnimated: delegate function. In that function the self.mapRegion will be updated, and the self.mapRegion instance will be created if necessary.
+    */
     func initMapRegion() {
+        
+        // Get persisted MapRegion instance from Core data (if any exists) and save it to both the view controller's private mapRegion property, and the mapView's region.
         let regions = fetchMapRegion()
         if regions.count > 0 {
+            // Use the persisted value for the region.
+            //let region = regions[0].region
+            
+            // set the view controller's mapRegion property
             self.mapRegion = regions[0]
+            
+            // Set the mapView's region.
+            self.mapView.region = regions[0].region
         } else {
-            self.mapRegion = nil
-        }
-        if let region = self.mapRegion {
-            // restore persisted region
-            self.mapView.region = region.region
-        } else {
-            // set a default region
+            // Set the default region.
             let location = CLLocationCoordinate2DMake(39.50, -98.35) // center of North America
             let span = MKCoordinateSpanMake(30, 30)
+            
+            if self.mapRegion != nil {
+                // set the existing mapRegion property instance to the default region.
+                self.mapRegion!.latitude = location.latitude
+                self.mapRegion!.longitude = location.longitude
+                self.mapRegion!.spanLatitude = span.latitudeDelta
+                self.mapRegion!.spanLongitude = span.longitudeDelta
+                
+            } else {
+                // Create a default map region instance and save it to this view controllers mapRegion property.
+                var dict = [String: AnyObject]()
+                dict[MapRegion.Keys.latitude] = location.latitude
+                dict[MapRegion.Keys.longitude] = location.longitude
+                dict[MapRegion.Keys.spanLatitude] = span.latitudeDelta
+                dict[MapRegion.Keys.spanLongitude] = span.longitudeDelta
+                self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+            }
+            
+            // set the MapView's default region
             let region = MKCoordinateRegionMake(location, span)
             self.mapView.region = region
             
-            // save to VC's MapRegion property
-            var dict = [String: AnyObject]()
-            dict[MapRegion.Keys.latitude] = location.latitude
-            dict[MapRegion.Keys.longitude] = location.longitude
-            dict[MapRegion.Keys.spanLatitude] = span.latitudeDelta
-            dict[MapRegion.Keys.spanLongitude] = span.longitudeDelta
-            self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+//            // Create a default map region instance and save it to this view controllers mapRegion property.
+//            var dict = [String: AnyObject]()
+//            dict[MapRegion.Keys.latitude] = location.latitude
+//            dict[MapRegion.Keys.longitude] = location.longitude
+//            dict[MapRegion.Keys.spanLatitude] = span.latitudeDelta
+//            dict[MapRegion.Keys.spanLongitude] = span.longitudeDelta
+//            self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
         }
         
         logMapViewRegion()
     }
     
-    /* Save this view controller's mapRegion to the context. */
-    func saveMapRegion() {
+//    /* Create a default map region instance and save it to this view controllers mapRegion property. */
+//    func setDefaultMapRegion() -> {
+//
+//        var dict = [String: AnyObject]()
+//        dict[MapRegion.Keys.latitude] = location.latitude
+//        dict[MapRegion.Keys.longitude] = location.longitude
+//        dict[MapRegion.Keys.spanLatitude] = span.latitudeDelta
+//        dict[MapRegion.Keys.spanLongitude] = span.longitudeDelta
+//        self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+//    }
+    
+    /* Save this view controller's mapRegion to the context after updating it to the mapViews current region. */
+    func updateAndSaveMapRegion() {
 
         // delete any existing MapRegion values in the Core Data store.
         //deleteAllPersistedMapRegions()
@@ -503,16 +539,32 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         
         // Instead it is better to simply update the view controller's mapRegion property. Core data will update this instance when saveContext() is called instead of creating a new instance.
         
-        self.mapRegion?.latitude = self.mapView.region.center.latitude
-        self.mapRegion?.longitude = self.mapView.region.center.longitude
-        self.mapRegion?.spanLatitude = self.mapView.region.span.latitudeDelta
-        self.mapRegion?.spanLongitude = self.mapView.region.span.longitudeDelta
+        // Set the mapView's region to the view controller's mapView property. Create the VC's mapRegion instance if necessary.
+        if let region = self.mapRegion {
+            // TODO - make sure this is called because the region is not getting reset when I open the app again.
+            self.mapRegion!.latitude = self.mapView.region.center.latitude
+            self.mapRegion!.longitude = self.mapView.region.center.longitude
+            self.mapRegion!.spanLatitude = self.mapView.region.span.latitudeDelta
+            self.mapRegion!.spanLongitude = self.mapView.region.span.longitudeDelta
+            
+            println("updated existing MapRegion: \(self.mapRegion)")
+        } else {
+            // Create a map region instance initialized to the mapView's current region.
+            var dict = [String: AnyObject]()
+            dict[MapRegion.Keys.latitude] = self.mapView.region.center.latitude
+            dict[MapRegion.Keys.longitude] = self.mapView.region.center.longitude
+            dict[MapRegion.Keys.spanLatitude] = self.mapView.region.span.latitudeDelta
+            dict[MapRegion.Keys.spanLongitude] = self.mapView.region.span.longitudeDelta
+            self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
+            
+            println("created a new MapRegion: \(self.mapRegion)")
+        }
         
         
         // persist the controller's mapRegion property
         CoreDataStackManager.sharedInstance().saveContext()
         
-        println("saved new region: \(self.mapRegion!.latitude, self.mapRegion!.longitude, self.mapRegion!.spanLatitude, self.mapRegion!.spanLongitude)")
+        println("persisted self.mapRegion: \(self.mapRegion!.latitude, self.mapRegion!.longitude, self.mapRegion!.spanLatitude, self.mapRegion!.spanLongitude)")
     }
     
     /* Delete any existing MapRegion values in the Core Data store. */
