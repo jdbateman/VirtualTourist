@@ -18,7 +18,7 @@ import UIKit
 import CoreData
 import MapKit
 
-class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate/*, NSFetchedResultsControllerDelegate*/ {
+class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout /*, NSFetchedResultsControllerDelegate*/ {
 
     var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
 
@@ -28,6 +28,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     let LAT_MAX = 90.0
     let LON_MIN = -180.0
     let LON_MAX = 180.0
+    
+    private let sectionInsets = UIEdgeInsets(top: 5.0, left: 5.0, bottom: 5.0, right: 5.0)
     
     /* the map at the top of the view */
     @IBOutlet weak var mapView: MKMapView!
@@ -60,6 +62,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Initialize the fetchResultsController from the core data store.
+        initFetchedResultsController()
+
         if let pin = pin {
             showPinOnMap(pin)
         }
@@ -73,19 +78,62 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // enable display of the navigation controller's toolbar
         self.navigationController?.setToolbarHidden(false, animated: true)
         
-        // initially disable the New Collection button
-        newCollectionButton!.enabled = false
-        
-        // Initialize the fetchResultsController.
-        initFetchedResultsController()
-        
-        // Initilize flickrPhotos from the view controller's current pin.photos
+        // Initilize flickrPhotos from the view controller's current pin.photos.
         if let pin = pin {
             flickrPhotos = pin.photos
+            
+            // enable the New Collection button
+            newCollectionButton!.enabled = true
         }
         
-        // set the layout for the collection view
+        // Initialize flickrPhotos from flickr if the current pin did not contain any photos.
+        if flickrPhotos.count == 0 {
+            initializePhotos()
+        }
+        
+        // set the layout for the collection view - TODO: figure out how to get spaces between cells
 //        setCollectionViewLayout()
+    }
+    
+    /* Initialize photos... TODO - update description */
+    func initializePhotos() {
+        self.startActivityIndicator()
+        
+        // disable the New Collection button until the images are downloaded from flickr.
+        newCollectionButton!.enabled = false
+        
+        // TODO - need to pull new images from flickr and store in this VC's collection and persist to core data for the current pin.
+        // That function needs to be changed to return after the fetch so that we can execute the rest of this function.
+        searchPhotosByLatLon2() {
+            success, error, pictures in
+            if success == true {
+                // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+                for image in pictures {
+                    self.saveImageAsPhoto(image)
+                }
+                
+                // halt the activity indicator
+                self.stopActivityIndicator()
+                
+                // enable the New Collection button.
+                self.newCollectionButton!.enabled = true
+                
+                // force the cells to update now that the images have been downloaded
+                dispatch_async(dispatch_get_main_queue()) {
+                    
+                    // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
+                    self.view.setNeedsLayout()
+                    self.view.setNeedsDisplay()
+                    
+                    self.collectionView.reloadData()
+                }
+            } else {
+                // halt the activity indicator
+                self.stopActivityIndicator()
+                
+                // TODO - report error to user
+            }
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -96,21 +144,21 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     /* Lay out the collection view so that cells take up 1/3 of the width, no collection border, with no space in between each cell.
     Acknowledgement: Based on code from the ColorCollection example.
     */
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        
-        // Lay out the collection view so that cells take up 1/3 of the width,
-        // with no space in between.
-        let layout : UICollectionViewFlowLayout = UICollectionViewFlowLayout()
-        
-        layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        layout.minimumLineSpacing = 0
-        layout.minimumInteritemSpacing = 0
-        
-        let width = floor(self.collectionView.frame.size.width/3)
-        layout.itemSize = CGSize(width: width, height: width)
-        collectionView.collectionViewLayout = layout
-    }
+//    override func viewDidLayoutSubviews() {
+//        super.viewDidLayoutSubviews()
+//        
+//        // Lay out the collection view so that cells take up 1/3 of the width,
+//        // with no space in between.
+//        let layout : UICollectionViewFlowLayout = UICollectionViewFlowLayout()
+//        
+//        layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+//        layout.minimumLineSpacing = 0
+//        layout.minimumInteritemSpacing = 0
+//        
+//        let width = floor(self.collectionView.frame.size.width/3)
+//        layout.itemSize = CGSize(width: width, height: width)
+//        collectionView.collectionViewLayout = layout
+//    }
 
     /*
     // MARK: - Navigation
@@ -129,6 +177,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         // empty the photo album - TODO: remove this line
         //self.flickrImages.removeAll(keepCapacity: true)
+        self.flickrPhotos.removeAll(keepCapacity: true)
         
         // remove all photos associated with this pin
         if let pin = pin {
@@ -138,10 +187,11 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         }
         
         // fetch a new set of images
-        searchPhotosByLatLon()
+        //searchPhotosByLatLon()
+        initializePhotos()
         
         // disable the New Collection button.
-        newCollectionButton!.enabled = false
+        //newCollectionButton!.enabled = false
     }
     
 
@@ -159,12 +209,10 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         self.mapView.region.span = span
         
         // Center the map on the coordinate(s).
-        self.mapView.setCenterCoordinate(pin.coordinate, animated: true)
+        self.mapView.setCenterCoordinate(pin.coordinate, animated: false)
         
         // Tell the OS that the mapView needs to be refreshed.
         self.mapView.setNeedsDisplay()
-        
-        searchPhotosByLatLon()
     }
     
     
@@ -203,11 +251,14 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
-        // remove the image from teh VC's collection - TODO: remove this line
+        // remove the image from the VC's collection - TODO: remove this line
         //self.flickrImages.removeAtIndex(indexPath.row)
         
         // remove the Photo object from the core data store.
         deletePhoto(self.flickrPhotos[indexPath.row])
+        
+        // remove the Photo from the VC's collection
+        self.flickrPhotos.removeAtIndex(indexPath.row)
         
         // force the cells to update now that the image has been downloaded
         dispatch_async(dispatch_get_main_queue()) {
@@ -296,81 +347,121 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        }
     }
     
-    /* Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates. */
-    func searchPhotosByLatLon() {
-        
-//        if !self.latitudeTextField.text.isEmpty && !self.longitudeTextField.text.isEmpty {
-            if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
-                //self.photoTitleLabel.text = "Searching..."
-                let methodArguments = [
-                    "method": Flickr.Constants.METHOD_NAME,
-                    "api_key": Flickr.Constants.API_KEY,
-                    "bbox": createBoundingBoxString(),
-                    "safe_search": Flickr.Constants.SAFE_SEARCH,
-                    "extras": Flickr.Constants.EXTRAS,
-                    "format": Flickr.Constants.DATA_FORMAT,
-                    "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
-                ]
-                
-                startActivityIndicator()
-                
-                Flickr.getImageFromFlickrBySearch(methodArguments) {
-                    success, errorString, pictures in
-                    
-                    // save the picture
-//                    if pictures.count > 0 {
-//                        self.flickrImage = pictures[0]
+//    /* Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates. */
+//    func searchPhotosByLatLon() {
+//        
+////        if !self.latitudeTextField.text.isEmpty && !self.longitudeTextField.text.isEmpty {
+//            if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
+//                //self.photoTitleLabel.text = "Searching..."
+//                let methodArguments = [
+//                    "method": Flickr.Constants.METHOD_NAME,
+//                    "api_key": Flickr.Constants.API_KEY,
+//                    "bbox": createBoundingBoxString(),
+//                    "safe_search": Flickr.Constants.SAFE_SEARCH,
+//                    "extras": Flickr.Constants.EXTRAS,
+//                    "format": Flickr.Constants.DATA_FORMAT,
+//                    "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
+//                ]
+//                
+//                startActivityIndicator()
+//                
+//                Flickr.getImageFromFlickrBySearch(methodArguments) {
+//                    success, errorString, pictures in
+//                    
+//                    // save the picture
+////                    if pictures.count > 0 {
+////                        self.flickrImage = pictures[0]
+////                    }
+//                    
+//                    // save the pictures to this view controller's collection
+////                    var pictures = pictures
+////                    pictures.removeAll(keepCapacity: false) // TODO: debug only. remove.
+//                    // self.flickrImages = pictures // TODO - remove
+//                    
+//                    // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+//                    for image in pictures {
+//                        self.saveImageAsPhoto(image)
 //                    }
-                    
-                    // save the pictures to this view controller's collection
-//                    var pictures = pictures
-//                    pictures.removeAll(keepCapacity: false) // TODO: debug only. remove.
-                    // self.flickrImages = pictures // TODO - remove
-                    
-                    // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
-                    for image in pictures {
-                        self.saveImageAsPhoto(image)
-                    }
-                    
-                    // TODO - can i move the view functionality out of this function to separate it from the data code?
-                    
-                    // halt the activity indicator
-                    self.stopActivityIndicator()
-                    
-                    // enable the New Collection button.
-                    self.newCollectionButton!.enabled = true
-                    
-                    // force the cells to update now that the image has been downloaded
-                    dispatch_async(dispatch_get_main_queue()) {
-                        
-                        // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
-                        self.view.setNeedsLayout()
-                        self.view.setNeedsDisplay()
-                        
-                        self.collectionView.reloadData()
-                    }
-                }
-            } else {
-                println("invalid latitude or longitude")
-//                if !validLatitude(self.pin?.coordinate.latitude) && !validLongitude(self.pin?.coordinate.longitude) {
-//                    self.photoTitleLabel.text = "Lat/Lon Invalid.\nLat should be [-90, 90].\nLon should be [-180, 180]."
-//                } else if !validLatitude(self.pin?.coordinate.latitude) {
-//                    self.photoTitleLabel.text = "Lat Invalid.\nLat should be [-90, 90]."
-//                } else {
-//                    self.photoTitleLabel.text = "Lon Invalid.\nLon should be [-180, 180]."
+//                    
+//                    // TODO - can i move the view functionality out of this function to separate it from the data code?
+//                    
+//                    // halt the activity indicator
+//                    self.stopActivityIndicator()
+//                    
+//                    // enable the New Collection button.
+//                    self.newCollectionButton!.enabled = true
+//                    
+//                    // force the cells to update now that the image has been downloaded
+//                    dispatch_async(dispatch_get_main_queue()) {
+//                        
+//                        // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
+//                        self.view.setNeedsLayout()
+//                        self.view.setNeedsDisplay()
+//                        
+//                        self.collectionView.reloadData()
+//                    }
 //                }
-            }
-//        } else {
-//            if self.latitudeTextField.text.isEmpty && self.longitudeTextField.text.isEmpty {
-//                self.photoTitleLabel.text = "Lat/Lon Empty."
-//            } else if self.latitudeTextField.text.isEmpty {
-//                self.photoTitleLabel.text = "Lat Empty."
 //            } else {
-//                self.photoTitleLabel.text = "Lon Empty."
+//                println("invalid latitude or longitude")
+////                if !validLatitude(self.pin?.coordinate.latitude) && !validLongitude(self.pin?.coordinate.longitude) {
+////                    self.photoTitleLabel.text = "Lat/Lon Invalid.\nLat should be [-90, 90].\nLon should be [-180, 180]."
+////                } else if !validLatitude(self.pin?.coordinate.latitude) {
+////                    self.photoTitleLabel.text = "Lat Invalid.\nLat should be [-90, 90]."
+////                } else {
+////                    self.photoTitleLabel.text = "Lon Invalid.\nLon should be [-180, 180]."
+////                }
 //            }
-//        }
+////        } else {
+////            if self.latitudeTextField.text.isEmpty && self.longitudeTextField.text.isEmpty {
+////                self.photoTitleLabel.text = "Lat/Lon Empty."
+////            } else if self.latitudeTextField.text.isEmpty {
+////                self.photoTitleLabel.text = "Lat Empty."
+////            } else {
+////                self.photoTitleLabel.text = "Lon Empty."
+////            }
+////        }
+//    }
+   
+    /* 
+    @brief Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates.
+    @param completionHandler (in)
+        success (out) true if flickr api search was successful, else false.
+        error (out) nil if success == true, else contains an NSError.
+        pictures (out) an array of UIImage objects, else empty array if an error occurred. (Note: a successful search can return an empty list.)
+    @return Void
+    */
+    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
+        
+        if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
+            //self.photoTitleLabel.text = "Searching..."
+            let methodArguments = [
+                "method": Flickr.Constants.METHOD_NAME,
+                "api_key": Flickr.Constants.API_KEY,
+                "bbox": createBoundingBoxString(),
+                "safe_search": Flickr.Constants.SAFE_SEARCH,
+                "extras": Flickr.Constants.EXTRAS,
+                "format": Flickr.Constants.DATA_FORMAT,
+                "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
+            ]
+            
+            //startActivityIndicator() // TODO - move this to caller
+            
+            Flickr.getImageFromFlickrBySearch(methodArguments) {
+                success, error, pictures in
+                
+                if success == true {
+                    completionHandler(success: true, error: nil, pictures: pictures)
+                } else {
+                    completionHandler(success: false, error: error, pictures: [] as [UIImage])
+                }
+            }
+        } else {
+            println("invalid latitude or longitude")
+            let error = NSError(domain: "invalid latitude or longitude", code: 907, userInfo: nil)
+            completionHandler(success: true, error: error, pictures: [] as [UIImage])
+        }
     }
-    
+
     
     // MARK: - Core Data
     
@@ -616,5 +707,34 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 extension String {
     func toDouble() -> Double? {
         return NSNumberFormatter().numberFromString(self)?.doubleValue
+    }
+}
+
+extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
+    
+    //1
+    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
+            
+//        let flickrPhoto =  photoForIndexPath(indexPath)
+//        //2
+//        if var size = flickrPhoto.thumbnail?.size {
+//            size.width += 10
+//            size.height += 10
+//            return size
+//        }
+        
+        // calculate the cell size
+        let nCells = 4
+        let nSpaces = nCells - 1
+        //let widthSpaces = nSpaces * (sectionInsets.left + sectionInsets.right) + sectionInsets.left + sectionInsets.right
+        let widthSpaces: CGFloat = (4 * sectionInsets.left) + (4 * sectionInsets.right)
+        let cellWidth = (collectionView.frame.size.width -  widthSpaces ) / 4
+        println("cellWidth = \(cellWidth)")
+        return CGSize(width: cellWidth, height: cellWidth)
+    }
+    
+    //3
+    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
+        return sectionInsets
     }
 }
