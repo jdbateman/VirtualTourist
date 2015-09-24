@@ -18,7 +18,7 @@ import CoreData
 import CoreLocation
 import MapKit
 
-class TravelLocationsMapViewController: UIViewController, NSFetchedResultsControllerDelegate, MKMapViewDelegate, UIGestureRecognizerDelegate  {
+class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsControllerDelegate,*/ MKMapViewDelegate, UIGestureRecognizerDelegate  {
 
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var mapContainerView: UIView!
@@ -64,7 +64,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
         initLongPressRecognizer()
         
         // Initialize the fetchResultsController.
-        initFetchedResultsController()
+//        initFetchedResultsController()
         
         // Initialize the map region
         initMapRegion()
@@ -176,7 +176,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
 //            }
         }
     }
-    
+/*
     // MARK: - Fetched results controller
     
     lazy var fetchedResultsController: NSFetchedResultsController = {
@@ -207,7 +207,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
             abort()
         }
     }
-    
+
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
 //        self.tableView.beginUpdates()
     }
@@ -257,7 +257,7 @@ class TravelLocationsMapViewController: UIViewController, NSFetchedResultsContro
          self.tableView.reloadData()
      }
      */
-
+*/
     
     // MARK: MKMapViewDelegate
     

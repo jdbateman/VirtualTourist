@@ -184,8 +184,8 @@
                                             </collectionViewCell>
                                         </cells>
                                         <connections>
-                                            <outlet property="dataSource" destination="aD1-Tc-Ndw" id="Ss5-p4-Fmx"/>
-                                            <outlet property="delegate" destination="aD1-Tc-Ndw" id="X29-ed-fJc"/>
+                                            <outlet property="dataSource" destination="aD1-Tc-Ndw" id="iCg-MG-Cbf"/>
+                                            <outlet property="delegate" destination="aD1-Tc-Ndw" id="Ja9-iI-r7q"/>
                                         </connections>
                                     </collectionView>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="No Images" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tZS-Tg-Xww">

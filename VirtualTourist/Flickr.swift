@@ -133,6 +133,8 @@ class Flickr {
                             
                             let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
                             
+                            println("Flickr.getImageFromFlickrBySearchWithPage reports \(photosArray.count) photos found on this page.")
+                            
                             // send delegate the number of photos that will be returned
                             if let delegate = self.delegate {
                                 delegate.numberOfPhotosToReturn(self, count: numPhotosToFetch)

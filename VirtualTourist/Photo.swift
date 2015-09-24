@@ -19,6 +19,8 @@ class Photo : NSManagedObject {
         static let pin: String = "pin"
     }
     
+    static let entityName = "Photo"
+    
     // JPEG image data for the meme picture
     @NSManaged var imageData: NSData?
     
