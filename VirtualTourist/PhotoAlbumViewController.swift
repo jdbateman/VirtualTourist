@@ -18,7 +18,7 @@ import UIKit
 import CoreData
 import MapKit
 
-class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout /*, NSFetchedResultsControllerDelegate*/ {
+class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, flickrDelegate /*, NSFetchedResultsControllerDelegate*/ {
 
     var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
 
@@ -40,6 +40,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     var newCollectionButton: UIBarButtonItem? = nil
     
+    let flickr = Flickr()
+    
     /* The pin to be displayed on the map. Should be set by the source view controller. */
     var pin:Pin?
     
@@ -58,12 +60,16 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     // TODO flickrPhotos keeps growing every time I do a search
     // TODO photos are no longer filling in after deletes
     
+    // TODO - load placeholder images for each cell why images are downloading. determine how many images to load.
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Initialize the fetchResultsController from the core data store.
         initFetchedResultsController()
+        
+        // set the Flickr delegate
+        flickr.delegate = self
 
         if let pin = pin {
             showPinOnMap(pin)
@@ -446,7 +452,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             
             //startActivityIndicator() // TODO - move this to caller
             
-            Flickr.getImageFromFlickrBySearch(methodArguments) {
+            flickr.getImageFromFlickrBySearch(methodArguments) {
                 success, error, pictures in
                 
                 if success == true {
@@ -710,13 +716,12 @@ extension String {
     }
 }
 
+/* Set the layout of the UICollectionView cells. */
 extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
     
-    //1
     func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
             
 //        let flickrPhoto =  photoForIndexPath(indexPath)
-//        //2
 //        if var size = flickrPhoto.thumbnail?.size {
 //            size.width += 10
 //            size.height += 10
@@ -733,8 +738,20 @@ extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
         return CGSize(width: cellWidth, height: cellWidth)
     }
     
-    //3
     func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
         return sectionInsets
+    }
+}
+
+/* Implement placeholder images to occupy cells while the final image is downloaded from Flickr. */
+extension PhotoAlbumViewController : flickrDelegate {
+    
+    // Flickr reports the number of images that will be downloaded. Use this information to create placeholder images for each cell.
+    func numberOfPhotosToReturn(flickr: Flickr, count: Int) {
+        println("flickrDelegate protocol reports \(count) images will be downloaded.")
+        
+        // Create a Photo object for each url_m returned from the flickr instance and give each a default image.
+        
+        // Later when the actual images are returned match them by url_m with the placeholder objects and update the placeholder object instead of creating a new Photo object. This means returning url_m with the UIImage data. Perhaps I should just return url_m instead of UIImage data, and download the UIImage data from this class.
     }
 }

@@ -10,6 +10,11 @@
 import Foundation
 import UIKit
 
+/* This protocol allos the flickr class to return the number of images to be downloaded to the delegate prior to starting the download. */
+protocol flickrDelegate {
+    func numberOfPhotosToReturn(flickr: Flickr, count: Int)
+}
+
 class Flickr {
     
     struct Constants {
@@ -22,6 +27,12 @@ class Flickr {
         static let NO_JSON_CALLBACK: String = "1"
     }
     
+    /* Implements the flickrDelegate protocol. The Flickr instance will report the count of images to download to the delegate.*/
+    var delegate: flickrDelegate?
+    
+    /* The maximum number of images to return for a page of images */
+    static let MAX_PHOTOS_TO_FETCH = 15
+    
     /*!
     @brief Makes an https Get request using the Flickr api to search for an image
     @discussion The Function makes two requests to the Flickr api: the first request is to get a random page, the second request is to get an image belonging to the random page.
@@ -32,7 +43,7 @@ class Flickr {
         pictures (out) An Array of UIImage objects if 1 or more images were found, else contains an empty array.
     @return void
     */
-    static func getImageFromFlickrBySearch(methodArguments: [String : AnyObject], completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
+    func getImageFromFlickrBySearch(methodArguments: [String : AnyObject], completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
         
         let session = NSURLSession.sharedSession()
         let urlString = Constants.BASE_URL + escapedParameters(methodArguments)
@@ -76,7 +87,7 @@ class Flickr {
     }
     
     /*!
-    @brief Makes an https Get request using the Flickr api to search for an image by page number
+    @brief Makes an https Get request using the Flickr api to search for an image by page number.
     @param methodArgumets (in) Contains parameters to be passed to the Flickr api as query string parameters.
     @param pageNumber (in) The number of the page of image results to request from the Flickr service.
     @param completionHandler (in):
@@ -85,7 +96,7 @@ class Flickr {
         pictures (out) An Array of UIImage objects if 1 or more images were found, else contains an empty array.
     @return void
     */
-    static func getImageFromFlickrBySearchWithPage(methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
+    func getImageFromFlickrBySearchWithPage(methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
         
         /* Add the page to the method's arguments */
         var withPageDictionary = methodArguments
@@ -120,7 +131,15 @@ class Flickr {
                             
                             var picturesToReturn = [UIImage]()
                             
-                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, 15)
+                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
+                            
+                            // send delegate the number of photos that will be returned
+                            if let delegate = self.delegate {
+                                delegate.numberOfPhotosToReturn(self, count: numPhotosToFetch)
+                                
+                                // return array of url_m values to delegate along with the count.
+                            }
+                            
                             for i in 0..<numPhotosToFetch {
 //                            for var i = 0; i<numPhotosToFetch; i++ {
                                 let photoDictionary = photosArray[i] as [String: AnyObject]
@@ -128,11 +147,14 @@ class Flickr {
                             // for photoDictionary in photosArray {
                             
                                 // get the metadata for this photo
-                                let photoTitle = photoDictionary["title"] as? String  //TOOD - don't need this line, but useful for debug
+                                let photoTitle = photoDictionary["title"] as? String
                                 let imageUrlString = photoDictionary["url_m"] as? String
-                                let imageURL = NSURL(string: imageUrlString!)
+                                let id = photoDictionary["id"] as? String
+                                
+                                // TODO - now that we have the metadata could a Photo object be created and returned that contains all the metadata?
                                 
                                 // get the binary image data
+                                let imageURL = NSURL(string: imageUrlString!)
                                 if let imageData = NSData(contentsOfURL: imageURL!) {
 //                                    dispatch_async(dispatch_get_main_queue(), {
     //                                    //self.defaultLabel.alpha = 0.0
@@ -200,7 +222,7 @@ class Flickr {
     }
     
     /* Helper function: Given a dictionary of parameters, convert to a string for a url */
-    static func escapedParameters(parameters: [String : AnyObject]) -> String {
+    func escapedParameters(parameters: [String : AnyObject]) -> String {
         
         var urlVars = [String]()
         
