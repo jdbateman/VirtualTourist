@@ -55,8 +55,9 @@ class Photo : NSManagedObject {
     
 }
 
-/* Allows Meme instances to be compared.*/
+/* Allows Photo instances to be compared.*/
 extension Photo: Equatable {}
 func ==(lhs: Photo, rhs: Photo) -> Bool {
-    return ( lhs.imageData == rhs.imageData )
+    println("Photo Equatable called")
+    return ( /*(lhs.imageData == rhs.imageData) && */(lhs.pin == rhs.pin) )  // TODO - update to use other metadata for comparison like title or url_m
 }

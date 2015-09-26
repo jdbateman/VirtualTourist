@@ -15,9 +15,9 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 */
 
 // TODO: NSFetchedResultsControllerDelegate
-// TODO: placeholder images for cells
-// TODO: keep a counter in Flickr class or caller to flickr search method instead of returning a random page
-// TODO: add metadata from flickr to Photo class to support sort descritpors in NSFetchedResultsController searches
+// TODO: placeholder images for cells in configureCell2
+// TODO: keep a counter in Flickr class (or caller) to the flickr search method instead of returning a random page
+// TODO: add metadata from flickr to Photo class to support sort descriptors in NSFetchedResultsController searches
 
 
 
@@ -25,7 +25,7 @@ import UIKit
 import CoreData
 import MapKit
 
-class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, flickrDelegate /*, NSFetchedResultsControllerDelegate*/ {
+class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, flickrDelegate, NSFetchedResultsControllerDelegate {
 
     var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
 
@@ -82,6 +82,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // set the Flickr delegate
         flickr.delegate = self
         
+        // set the NSFetchedResultsControllerDelegate
+        fetchedResultsController.delegate = self
+        
         if let pin = pin {
             showPinOnMap(pin)
         }
@@ -114,6 +117,10 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        setCollectionViewLayout()
     }
     
+    override func viewDidDisappear(animated: Bool) {
+        fetchedResultsController.delegate = nil
+    }
+    
     /* Initialize photos... TODO - update description */
     func initializePhotos() {
         self.startActivityIndicator()
@@ -128,15 +135,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             if success == true {
                 // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
                 for image in pictures {
-                    dispatch_async(dispatch_get_main_queue()) {
-                        self.saveImageAsPhoto(image)
-                    }
+                    self.saveImageAsPhoto(image)
                 }
                 
                 // Now that all the images have been saved to the context, update the fetchedResultsController from core data.
-                dispatch_async(dispatch_get_main_queue()) {
-                    self.fetchPhotos()
-                }
+//                dispatch_async(dispatch_get_main_queue()) {
+//                    self.fetchPhotos()
+//                }
                 
                 // halt the activity indicator
                 self.stopActivityIndicator()
@@ -152,11 +157,11 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //                    self.view.setNeedsDisplay()
                     
                     // TODO: try resetting the delegates before calling reloadData to get the data source to update it's count properly
-                    self.collectionView.dataSource = self
-                    self.collectionView.delegate = self
+//                    self.collectionView.dataSource = self
+//                    self.collectionView.delegate = self
                     
                     //self.view.setNeedsDisplay()
-                    self.collectionView.reloadData()
+                    self.collectionView.reloadData() // TODO - tried disabling. no effect.
                 }
             } else {
                 // halt the activity indicator
@@ -217,9 +222,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             }
             
             // Now that all the pin's photos have been deleted, update the fetchedResultsController by refetching the Photos.
-            dispatch_async(dispatch_get_main_queue()) { // TODO - called on main already?
-                self.fetchPhotos()
-            }
+//            dispatch_async(dispatch_get_main_queue()) { // TODO - called on main already?
+//                self.fetchPhotos()
+//            }
         }
         
         // TODO: instead of iterating all Photo objects in the pin, aren't they already stored by the NSFetchedResultsController? Can we just use the NSFetchedResultsController to nuke all of them in one call?
@@ -293,7 +298,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         CoreDataStackManager.sharedInstance().saveContext()
         
         // update the fetchedResultsController with the new data in core data.
-        fetchPhotos()
+        //fetchPhotos() // TODO - reenable to support NSFetchedResultsControllerDelegate?
         
         // force the cells to update now that the image has been downloaded
         //dispatch_async(dispatch_get_main_queue()) { // TODO - already on the main thread here so don't need dispatch_async
@@ -310,22 +315,31 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }()
     
     
-    /* Persist a new Photo instance of the specified UIImage, setting the Photo's inverse relationship to it's Pin, and save the new Photo to the view controller's flickrPhotos collection. */
+    /* 
+    @brief Persist a new Photo instance of the specified UIImage.
+    @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
+    */
     func saveImageAsPhoto(image: UIImage?) {
         
-        if let image = image {
+        dispatch_async(dispatch_get_main_queue()) {  // TODO: tried syncronous queue - no effect
             
-            // create a new Photo instance
-            var dict = [String: AnyObject]()
-            dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
-            dict[Photo.keys.pin] = self.pin
-            var photo = Photo(dictionary:dict, context: sharedContext) // TODO: on background thread here!
-            
-            // save the Photo to the View controller's collection of Photo objects
-            //self.flickrPhotos.append(photo) // TODO: convert to NSFetchedResultsController
-            
-            // save the core data context
-            CoreDataStackManager.sharedInstance().saveContext() // TODO: on background thread here!
+            if let image = image {
+                
+                // create a new Photo instance
+                var dict = [String: AnyObject]()
+                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+                dict[Photo.keys.pin] = self.pin
+                var photo = Photo(dictionary:dict, context: self.sharedContext) // TODO: on background thread here!
+                
+                // save the Photo to the View controller's collection of Photo objects
+                //self.flickrPhotos.append(photo) // TODO: convert to NSFetchedResultsController
+                
+                println("saveImageAsPhoto about to call CoreDataStackManager.sharedInstance().saveContext()")
+                
+                // save the core data context
+                CoreDataStackManager.sharedInstance().saveContext() // being called on the main thread.
+                println("saveImageAsPhoto called CoreDataStackManager.sharedInstance().saveContext()")
+            }
         }
     }
     
@@ -382,6 +396,85 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     
+    // MARK: NSFetchedResultsControllerDelegate
+    
+    // Any change to Core Data causes these delegate methods to be called.
+    
+    // Initialize arrays of index paths which identify objects that will need to be changed.
+    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+        println("start controllerWillChangeContent")
+        
+        insertedIndexPaths = [NSIndexPath]()
+        deletedIndexPaths = [NSIndexPath]()
+        updatedIndexPaths = [NSIndexPath]()
+        
+        println("end controllerWillChangeContent")
+    }
+    
+    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
+        // Our project does not use sections. So we can ignore these invocations.
+        println("in didChangeSection")
+    }
+    
+    // Save the index path of each object that is added, deleted, or updated as the change is identified by Core Data.
+    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+        
+        switch type{
+            
+        case .Insert:
+            println("Insert an item")
+            // A new Photo has been added to Core Data. Save the "newIndexPath" parameter so the cell can be added later.
+            insertedIndexPaths.append(newIndexPath!)
+            break
+        case .Delete:
+            println("Delete an item")
+            // A Photo has been deleted from Core Data. Save the "indexPath" parameter so the corresponding cell can be removed later.
+            deletedIndexPaths.append(indexPath!)
+            break
+        case .Update:
+            println("Update an item.")
+            // A change was made to an existing object in Core Data.
+            // (For example, when an images is downloaded from Flickr in the Virtual Tourist app)
+            updatedIndexPaths.append(indexPath!)
+            break
+        case .Move:
+            println("Move an item. Not implemnted in this app.")
+            break
+        default:
+            break
+        }
+    }
+    
+    // Do an update of all changes in the current batch.
+    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+        
+        println("in controllerDidChangeContent. changes.count: \(insertedIndexPaths.count + deletedIndexPaths.count + updatedIndexPaths.count)")
+        
+        collectionView.performBatchUpdates({() -> Void in
+            
+            // added
+            for indexPath in self.insertedIndexPaths {
+                self.collectionView.insertItemsAtIndexPaths([indexPath])
+                println("inserted items")
+            }
+            
+            // deleted
+            for indexPath in self.deletedIndexPaths {
+                self.collectionView.deleteItemsAtIndexPaths([indexPath])
+                println("deleted items")
+            }
+            
+            // updated
+            for indexPath in self.updatedIndexPaths {
+                self.collectionView.reloadItemsAtIndexPaths([indexPath])
+                println("reloaded items")
+            }
+            
+            }, completion: nil)
+    }
+
+    
+    
     // MARK: helper functions
     
     /* Display the specified pin on the MKMapView. This function sets the span. */
@@ -424,7 +517,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        println("stopActivityIndicator()")
     }
     
-    // Configure Cell
+    /* Set cell image to Photo.image. If no image exists yet do nothing. */
     func configureCell(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
         
         let photo = self.fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
@@ -441,6 +534,20 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 //        else {
 //            cell.imageView.image = UIImage(named: "pluto.jpg")
 //        }
+    }
+    
+    /* Set cell image to the placeholder image. If no image is identified in the Photo object download the image from Flickr. */
+    func configureCell2(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
+        
+        let photo = self.fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
+        
+        // set placeholder image
+        cell.imageView.image = UIImage(named: "placeholder.jpg") //TODO get rid of placeholder-photo.jpg
+        //TODO - remove cell.setPictureForCell(picture)
+        
+        if photo.image == nil {
+            // download image
+        }
     }
     
     // TODO: may no longer need this function:

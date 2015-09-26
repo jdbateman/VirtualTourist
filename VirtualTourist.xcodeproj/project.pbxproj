@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9E5518981BB4E4910024F284 /* placeholder.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9E5518971BB4E4910024F284 /* placeholder.jpg */; };
+		9E55189A1BB4E5C20024F284 /* placeholder-photo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9E5518991BB4E5C20024F284 /* placeholder-photo.jpg */; };
 		9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */; };
 		9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9E91BA91BA400A8E099 /* VirtualTourist.xcdatamodeld */; };
 		9E8FB9ED1BA91BA400A8E099 /* TravelLocationsMapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9EC1BA91BA400A8E099 /* TravelLocationsMapViewController.swift */; };
@@ -37,6 +39,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9E5518971BB4E4910024F284 /* placeholder.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = placeholder.jpg; sourceTree = "<group>"; };
+		9E5518991BB4E5C20024F284 /* placeholder-photo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "placeholder-photo.jpg"; sourceTree = "<group>"; };
 		9E8FB9E21BA91BA400A8E099 /* VirtualTourist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VirtualTourist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E8FB9E61BA91BA400A8E099 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -114,6 +118,8 @@
 			children = (
 				9E8FB9E61BA91BA400A8E099 /* Info.plist */,
 				9ED979461BAE6A8E002FBE65 /* pluto.jpg */,
+				9E5518971BB4E4910024F284 /* placeholder.jpg */,
+				9E5518991BB4E5C20024F284 /* placeholder-photo.jpg */,
 				9ED979481BAE6A99002FBE65 /* Udacity.png */,
 				9E8FB9F31BA91BA400A8E099 /* Images.xcassets */,
 				9E8FB9F51BA91BA400A8E099 /* LaunchScreen.xib */,
@@ -243,7 +249,9 @@
 			files = (
 				9ED979471BAE6A8E002FBE65 /* pluto.jpg in Resources */,
 				9E8FB9F21BA91BA400A8E099 /* Main.storyboard in Resources */,
+				9E55189A1BB4E5C20024F284 /* placeholder-photo.jpg in Resources */,
 				9E8FB9F71BA91BA400A8E099 /* LaunchScreen.xib in Resources */,
+				9E5518981BB4E4910024F284 /* placeholder.jpg in Resources */,
 				9ED979491BAE6A99002FBE65 /* Udacity.png in Resources */,
 				9E8FB9F41BA91BA400A8E099 /* Images.xcassets in Resources */,
 			);

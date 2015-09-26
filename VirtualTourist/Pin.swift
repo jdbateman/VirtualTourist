@@ -54,3 +54,10 @@ class Pin: NSManagedObject {
         longitude = dictionary[Keys.longitude] as! Double
     }
 }
+
+/* Allows Pin instances to be compared.*/
+extension Pin: Equatable {}
+func ==(lhs: Pin, rhs: Pin) -> Bool {
+    println("Pin Equatable called")
+    return ( (lhs.latitude == rhs.latitude) && (lhs.longitude == rhs.longitude) )
+}
