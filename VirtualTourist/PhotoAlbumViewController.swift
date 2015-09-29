@@ -134,9 +134,11 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             success, error, pictures in
             if success == true {
                 // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
-                for image in pictures {
-                    self.saveImageAsPhoto(image)
-                }
+//                for image in pictures {
+//                    self.saveImageAsPhoto(image)
+//                }
+//                CoreDataStackManager.sharedInstance().saveContext()
+                self.saveImagesAsPhotos(pictures)
                 
                 // Now that all the images have been saved to the context, update the fetchedResultsController from core data.
 //                dispatch_async(dispatch_get_main_queue()) {
@@ -321,7 +323,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     */
     func saveImageAsPhoto(image: UIImage?) {
         
-        dispatch_async(dispatch_get_main_queue()) {  // TODO: tried syncronous queue - no effect
+//        dispatch_async(dispatch_get_main_queue()) {
             
             if let image = image {
                 
@@ -329,7 +331,10 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                 var dict = [String: AnyObject]()
                 dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
                 dict[Photo.keys.pin] = self.pin
-                var photo = Photo(dictionary:dict, context: self.sharedContext) // TODO: on background thread here!
+                
+                dispatch_async(dispatch_get_main_queue()) {
+                    var photo = Photo(dictionary:dict, context: self.sharedContext) // TODO: on background thread here!
+                }
                 
                 // save the Photo to the View controller's collection of Photo objects
                 //self.flickrPhotos.append(photo) // TODO: convert to NSFetchedResultsController
@@ -337,9 +342,26 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                 println("saveImageAsPhoto about to call CoreDataStackManager.sharedInstance().saveContext()")
                 
                 // save the core data context
-                CoreDataStackManager.sharedInstance().saveContext() // being called on the main thread.
+                //CoreDataStackManager.sharedInstance().saveContext() // being called on the main thread. Moved to end of for loop that calls saveImageAsPhoto for each downloaded image.
                 println("saveImageAsPhoto called CoreDataStackManager.sharedInstance().saveContext()")
             }
+//        }
+    }
+    
+    /* 
+    @brief Persist each image in images as a Photo object in Core Data.
+    @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
+    */
+    func saveImagesAsPhotos(images: [UIImage]) {
+        dispatch_async(dispatch_get_main_queue()) {
+            for image in images {
+                // create a new Photo instance
+                var dict = [String: AnyObject]()
+                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+                dict[Photo.keys.pin] = self.pin
+                var photo = Photo(dictionary:dict, context: self.sharedContext)
+            }
+            CoreDataStackManager.sharedInstance().saveContext()
         }
     }
     
