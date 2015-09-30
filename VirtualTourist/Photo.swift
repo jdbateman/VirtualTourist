@@ -49,10 +49,26 @@ class Photo : NSManagedObject {
         let entity = NSEntityDescription.entityForName("Photo", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
+        
+        // Working if I stub in a pin. Crashes if I use the real pin. hmmmm.
+        
+        // TODO: restore these 2 lines
         imageData = dictionary[keys.imageData] as? NSData
         pin = dictionary[keys.pin] as? Pin
+//        if let pin = pin {
+//            println("(\(pin.latitude), \(pin.longitude))")
+//        }
+        
+        // TODO: get rid of these hard coded debug values for imageData and pin
+//        imageData = UIImageJPEGRepresentation(UIImage(named: "pluto.jpg"), 1)
+//        var dict = [String: AnyObject]()
+//        dict[Pin.Keys.latitude] = pin?.latitude //37.7833
+//        dict[Pin.Keys.longitude] = pin?.longitude //-122.4167
+//        if let pin = pin {
+//            println("(\(pin.latitude), \(pin.longitude))")
+//        }
+//        pin = Pin(dictionary: dict, context: context)
     }
-    
 }
 
 /* Allows Photo instances to be compared.*/

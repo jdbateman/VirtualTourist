@@ -330,6 +330,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                 // create a new Photo instance
                 var dict = [String: AnyObject]()
                 dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+                if self.pin == nil {
+                    println("******** PhotoAlbumViewController pin is nil! ********")
+                }
                 dict[Photo.keys.pin] = self.pin
                 
                 dispatch_async(dispatch_get_main_queue()) {
@@ -354,11 +357,26 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     */
     func saveImagesAsPhotos(images: [UIImage]) {
         dispatch_async(dispatch_get_main_queue()) {
+            
+            // TODO: Test creating a new pin instance with the same coordinates.
+//            if let pin = self.pin {
+//                var dict = [String: AnyObject]()
+//                dict[Pin.Keys.latitude] = self.pin!.latitude
+//                dict[Pin.Keys.longitude] = self.pin!.longitude
+//                self.pin = Pin(dictionary: dict, context: self.sharedContext)
+//                println("(\(self.pin!.latitude), \(self.pin!.longitude))")
+//            }
+            
             for image in images {
+//                let data: NSData? = UIImageJPEGRepresentation(image, 1)
+//                if data == nil {
+//                    println("image data is nil")
+//                }
                 // create a new Photo instance
                 var dict = [String: AnyObject]()
                 dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
                 dict[Photo.keys.pin] = self.pin
+
                 var photo = Photo(dictionary:dict, context: self.sharedContext)
             }
             CoreDataStackManager.sharedInstance().saveContext()
@@ -381,8 +399,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         let fetchRequest = NSFetchRequest(entityName: Photo.entityName) // TODO: check that this should not be Pin.entityName.
         
         // Add a sort descriptor to enforce a sort order on the results.
-//        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "pin", ascending: false)] // TODO: does this work? can you sort on any class?
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: Photo.keys.imageData, ascending: false)] // TODO: does this work? can you sort on any class?
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "pin", ascending: false)] // TODO: does this work? can you sort on any class?
+//        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "imageData" /*Photo.keys.imageData*/, ascending: false)] // TODO - causes exception on saveContext!
         // TODO: store some other metadata about a Photo in it's properties and sort based on one of those properties here. E.g. title.
         
         if let pin = self.pin {
@@ -569,6 +587,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         if photo.image == nil {
             // download image
+            println("photo.image == nil")
         }
     }
     
