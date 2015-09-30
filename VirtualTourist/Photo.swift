@@ -14,9 +14,12 @@ import UIKit
 
 class Photo : NSManagedObject {
     
-    struct keys {
+    struct InitKeys {
         static let imageData: String = "imageData"
         static let pin: String = "pin"
+        static let imageUrl: String = "imageUrl"
+        static let title: String = "title"
+        static let id: String = "id"
     }
     
     static let entityName = "Photo"
@@ -27,16 +30,27 @@ class Photo : NSManagedObject {
     // pin to which the image belongs
     @NSManaged var pin: Pin?
     
+    // url for the image
+    @NSManaged var imageUrl: String?
+    
+    @NSManaged var title: String?
+    
+    @NSManaged var id: String?
+    
     // UIImage computed from imageData property
-    var image: UIImage? {
-        get {
-            if let theData = imageData {
-                return UIImage(data: theData)
-            } else {
-                return nil
-            }
-        }
-    }
+//    var image: UIImage? {
+//        get {
+//            if let theData = imageData {
+//                return UIImage(data: theData)
+//            } else {
+//                return nil
+//            }
+//        }
+//    }
+    
+    var image: UIImage?
+        
+
     
     /* Core Data init method */
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
@@ -49,25 +63,82 @@ class Photo : NSManagedObject {
         let entity = NSEntityDescription.entityForName("Photo", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
+        imageData = dictionary[InitKeys.imageData] as? NSData
+        pin = dictionary[InitKeys.pin] as? Pin
+        imageUrl = dictionary[InitKeys.imageUrl] as? String
+        title = dictionary[InitKeys.title] as? String
+        id = dictionary[InitKeys.id] as? String
+    }
+    
+    /* 
+    @brief Acquire the UIImage for this Photo object.
+    @discussion The image is retrieved using the following sequence:
+        If the image has not previously been downloaded, then download the image from self.imageUrl.
+        else build the image from NSData stored in Core Data
+        TODO - finish description when logic is updated for caching and file system storage
+    @param completion (in)
+    @param success (out) - true if image successfully acquired, else false.
+    @param error (out) - NSError object if an error occurred, else nil.
+    @param image (out) - the retrieved UIImage. May be nil if no image was found, or if an error occurred.
+    */
+    func getImage(completion: (success: Bool, error: NSError?, image: UIImage?) -> Void ) {
         
-        // Working if I stub in a pin. Crashes if I use the real pin. hmmmm.
+        if let imageData = self.imageData {
+            completion(success: true, error: nil, image: UIImage(data: imageData))
+        } else {
+            
+            // TODO: load from image cache
+            
+            // TODO: load from file system
+            
+            // load from server
+            if let url = self.imageUrl {
+                self.getImageFrom(url) { success, error, theImage in
+                    if success {
+                        // save the image data to the Photo property
+                        self.imageData = UIImageJPEGRepresentation(theImage, 1)
+                        
+                        completion(success: true, error: nil, image: theImage)
+                    } else {
+                        // TODO - handle the failed download by retrying once?
+                        println("failed to download image. stick with placholder image.")
+                        var error: NSError = NSError(domain: "Image download failed.", code: 909, userInfo: nil)
+                        completion(success: false, error: error, image: nil)
+                    }
+                }
+            }
+        }
+    }
+    
+    // TODO: under construction. what to do after we succeed or fail in pulling down the image on the background thread?
+    func getImageFrom(imageUrlString: String?, completion: (success: Bool, error: NSError?, image: UIImage?) -> Void) {
         
-        // TODO: restore these 2 lines
-        imageData = dictionary[keys.imageData] as? NSData
-        pin = dictionary[keys.pin] as? Pin
-//        if let pin = pin {
-//            println("(\(pin.latitude), \(pin.longitude))")
-//        }
-        
-        // TODO: get rid of these hard coded debug values for imageData and pin
-//        imageData = UIImageJPEGRepresentation(UIImage(named: "pluto.jpg"), 1)
-//        var dict = [String: AnyObject]()
-//        dict[Pin.Keys.latitude] = pin?.latitude //37.7833
-//        dict[Pin.Keys.longitude] = pin?.longitude //-122.4167
-//        if let pin = pin {
-//            println("(\(pin.latitude), \(pin.longitude))")
-//        }
-//        pin = Pin(dictionary: dict, context: context)
+        let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+        dispatch_async(backgroundQueue, {
+            // get the binary image data
+            let imageURL = NSURL(string: imageUrlString!)
+            if let imageData = NSData(contentsOfURL: imageURL!) {
+            
+                // Convert the image data to a UIImage object and append to the array to be returned.
+                if let picture = UIImage(data: imageData) {
+                    completion(success: true, error: nil, image: picture)
+                    
+//                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+//                        println("TODO: what to do here?")
+//                        
+//                    })
+                }
+                else {
+                    let error = NSError(domain: "cannot convert image data", code: 908, userInfo: nil)
+                    completion(success: false, error: error, image: nil)
+                }
+
+            } else {
+                println("Image does not exist at \(imageURL)")
+                let error = NSError(domain: "Image does not exist at \(imageURL)", code: 904, userInfo: nil)
+                completion(success: false, error: error, image: nil)
+            }
+        })
     }
 }
 

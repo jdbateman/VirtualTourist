@@ -14,10 +14,10 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
 */
 
-// TODO: NSFetchedResultsControllerDelegate
 // TODO: placeholder images for cells in configureCell2
 // TODO: keep a counter in Flickr class (or caller) to the flickr search method instead of returning a random page
 // TODO: add metadata from flickr to Photo class to support sort descriptors in NSFetchedResultsController searches
+// TODO: store url in Photo class and have a computed property or function to do the download in a background thread.
 
 
 
@@ -121,30 +121,75 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         fetchedResultsController.delegate = nil
     }
     
-    /* Initialize photos... TODO - update description */
+//    /* Initialize photos... TODO - update description */
+//    func initializePhotos() {
+//        self.startActivityIndicator()
+//        
+//        // disable the New Collection button until the images are downloaded from flickr.
+//        newCollectionButton!.enabled = false
+//        
+//        // TODO - need to pull new images from flickr and store in this VC's collection and persist to core data for the current pin.
+//        // That function needs to be changed to return after the fetch so that we can execute the rest of this function.
+//        searchPhotosByLatLon2() {
+//            success, error, imageMetadata in
+//            if success == true {
+//                // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+////                for image in pictures {
+////                    self.saveImageAsPhoto(image)
+////                }
+////                CoreDataStackManager.sharedInstance().saveContext()
+//                self.saveImagesAsPhotos(pictures)
+//                
+//                // Now that all the images have been saved to the context, update the fetchedResultsController from core data.
+////                dispatch_async(dispatch_get_main_queue()) {
+////                    self.fetchPhotos()
+////                }
+//                
+//                // halt the activity indicator
+//                self.stopActivityIndicator()
+//                
+//                // enable the New Collection button.
+//                self.newCollectionButton!.enabled = true
+//                
+//                // force the cells to update now that the images have been downloaded
+//                dispatch_async(dispatch_get_main_queue()) {
+//                    
+//                    // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
+////                    self.view.setNeedsLayout()
+////                    self.view.setNeedsDisplay()
+//                    
+//                    // TODO: try resetting the delegates before calling reloadData to get the data source to update it's count properly
+////                    self.collectionView.dataSource = self
+////                    self.collectionView.delegate = self
+//                    
+//                    //self.view.setNeedsDisplay()
+//                    self.collectionView.reloadData() // TODO - tried disabling. no effect.
+//                }
+//            } else {
+//                // halt the activity indicator
+//                self.stopActivityIndicator()
+//                
+//                // TODO - report error to user
+//            }
+//        }
+//    }
+    
+    /* 
+    @brief Search flickr for images by gps coordinates. Create a Photo object for each set of image meta returned. Insert each into the shared Core Data context.
+    @discussion The data is returned from the Flickr object as an array of dictionaries, where each dictionary contains metadata for a particular image. The data does not contain the actual image data, but instead a url identifying the location of the image.
+    */
     func initializePhotos() {
         self.startActivityIndicator()
         
         // disable the New Collection button until the images are downloaded from flickr.
         newCollectionButton!.enabled = false
         
-        // TODO - need to pull new images from flickr and store in this VC's collection and persist to core data for the current pin.
-        // That function needs to be changed to return after the fetch so that we can execute the rest of this function.
         searchPhotosByLatLon2() {
-            success, error, pictures in
+            success, error, imageMetadata in
             if success == true {
                 // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
-//                for image in pictures {
-//                    self.saveImageAsPhoto(image)
-//                }
-//                CoreDataStackManager.sharedInstance().saveContext()
-                self.saveImagesAsPhotos(pictures)
-                
-                // Now that all the images have been saved to the context, update the fetchedResultsController from core data.
-//                dispatch_async(dispatch_get_main_queue()) {
-//                    self.fetchPhotos()
-//                }
-                
+                self.saveImageMetadataAsPhotos(imageMetadata)
+        
                 // halt the activity indicator
                 self.stopActivityIndicator()
                 
@@ -152,18 +197,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                 self.newCollectionButton!.enabled = true
                 
                 // force the cells to update now that the images have been downloaded
-                dispatch_async(dispatch_get_main_queue()) { // TODO: sometimes on the main thread, sometimes not. How to handle?
-                    
-                    // TODO - why the delay in enabling the newCollectionButton? Which of the following calls is prefered to trigger a redraw?
-//                    self.view.setNeedsLayout()
-//                    self.view.setNeedsDisplay()
-                    
-                    // TODO: try resetting the delegates before calling reloadData to get the data source to update it's count properly
-//                    self.collectionView.dataSource = self
-//                    self.collectionView.delegate = self
-                    
+                dispatch_async(dispatch_get_main_queue()) {
                     //self.view.setNeedsDisplay()
-                    self.collectionView.reloadData() // TODO - tried disabling. no effect.
+                    self.collectionView.reloadData()
                 }
             } else {
                 // halt the activity indicator
@@ -174,11 +210,12 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         }
     }
 
+
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-    
+
     /* Lay out the collection view so that cells take up 1/3 of the width, no collection border, with no space in between each cell.
     Acknowledgement: Based on code from the ColorCollection example.
     */
@@ -276,7 +313,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoAlbumCellID", forIndexPath: indexPath) as! PhotoAlbumCell
         
-        self.configureCell(cell, atIndexPath: indexPath)
+        self.configureCell2(cell, atIndexPath: indexPath)
         
         return cell
     }
@@ -321,69 +358,97 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     @brief Persist a new Photo instance of the specified UIImage.
     @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
     */
-    func saveImageAsPhoto(image: UIImage?) {
-        
-//        dispatch_async(dispatch_get_main_queue()) {
-            
-            if let image = image {
-                
-                // create a new Photo instance
-                var dict = [String: AnyObject]()
-                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
-                if self.pin == nil {
-                    println("******** PhotoAlbumViewController pin is nil! ********")
-                }
-                dict[Photo.keys.pin] = self.pin
-                
-                dispatch_async(dispatch_get_main_queue()) {
-                    var photo = Photo(dictionary:dict, context: self.sharedContext) // TODO: on background thread here!
-                }
-                
-                // save the Photo to the View controller's collection of Photo objects
-                //self.flickrPhotos.append(photo) // TODO: convert to NSFetchedResultsController
-                
-                println("saveImageAsPhoto about to call CoreDataStackManager.sharedInstance().saveContext()")
-                
-                // save the core data context
-                //CoreDataStackManager.sharedInstance().saveContext() // being called on the main thread. Moved to end of for loop that calls saveImageAsPhoto for each downloaded image.
-                println("saveImageAsPhoto called CoreDataStackManager.sharedInstance().saveContext()")
-            }
-//        }
-    }
+//    func saveImageAsPhoto(image: UIImage?) {
+//        
+////        dispatch_async(dispatch_get_main_queue()) {
+//            
+//            if let image = image {
+//                
+//                // create a new Photo instance
+//                var dict = [String: AnyObject]()
+//                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+//                dict[Photo.keys.pin] = self.pin
+//                dict[Photo.keys.imageUrl] = TODO
+//                dispatch_async(dispatch_get_main_queue()) {
+//                    var photo = Photo(dictionary:dict, context: self.sharedContext) // TODO: on background thread here!
+//                }
+//                
+//                // save the Photo to the View controller's collection of Photo objects
+//                //self.flickrPhotos.append(photo) // TODO: convert to NSFetchedResultsController
+//                
+//                println("saveImageAsPhoto about to call CoreDataStackManager.sharedInstance().saveContext()")
+//                
+//                // save the core data context
+//                //CoreDataStackManager.sharedInstance().saveContext() // being called on the main thread. Moved to end of for loop that calls saveImageAsPhoto for each downloaded image.
+//                println("saveImageAsPhoto called CoreDataStackManager.sharedInstance().saveContext()")
+//            }
+////        }
+//    }
     
     /* 
     @brief Persist each image in images as a Photo object in Core Data.
     @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
     */
-    func saveImagesAsPhotos(images: [UIImage]) {
-        dispatch_async(dispatch_get_main_queue()) {
-            
-            // TODO: Test creating a new pin instance with the same coordinates.
-//            if let pin = self.pin {
+//    func saveImagesAsPhotos(images: [UIImage]) {
+//        dispatch_async(dispatch_get_main_queue()) {
+//            
+//            for image in images {
+//                // create a new Photo instance
 //                var dict = [String: AnyObject]()
-//                dict[Pin.Keys.latitude] = self.pin!.latitude
-//                dict[Pin.Keys.longitude] = self.pin!.longitude
-//                self.pin = Pin(dictionary: dict, context: self.sharedContext)
-//                println("(\(self.pin!.latitude), \(self.pin!.longitude))")
+//                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
+//                dict[Photo.keys.pin] = self.pin
+//
+//                var photo = Photo(dictionary:dict, context: self.sharedContext)
 //            }
-            
-            for image in images {
-//                let data: NSData? = UIImageJPEGRepresentation(image, 1)
-//                if data == nil {
-//                    println("image data is nil")
-//                }
-                // create a new Photo instance
-                var dict = [String: AnyObject]()
-                dict[Photo.keys.imageData] = UIImageJPEGRepresentation(image, 1)
-                dict[Photo.keys.pin] = self.pin
+//            CoreDataStackManager.sharedInstance().saveContext()
+//        }
+//    }
+    
+    /*
+    @brief Persist each imageMetaData dictionary as a Photo object in Core Data.
+    @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
+    */
+    func saveImageMetadataAsPhotos(imageMetadata: [[String: AnyObject?]]?) {
+        dispatch_async(dispatch_get_main_queue()) {
 
-                var photo = Photo(dictionary:dict, context: self.sharedContext)
+            // create a new Photo instance
+            var dict = [String: AnyObject]()
+            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
+            dict[Photo.InitKeys.pin] = self.pin
+            
+            // set the image metaData obtained from the flickr api for this photo
+            if let imageMetadata = imageMetadata {
+                for metadataDictionary in imageMetadata {
+                    // image url
+                    if let url = metadataDictionary[Flickr.FlickrImageMetadataKeys.URL] as? String {
+                        dict[Photo.InitKeys.imageUrl] = url
+                    } else {
+                       dict[Photo.InitKeys.imageUrl] = nil
+                    }
+                    
+                    // image title
+                    if let title = metadataDictionary[Flickr.FlickrImageMetadataKeys.TITLE] as? String {
+                        dict[Photo.InitKeys.title] = title
+                    } else {
+                        dict[Photo.InitKeys.title] = nil
+                    }
+                    
+                    // image's flickr ID
+                    if let id = metadataDictionary[Flickr.FlickrImageMetadataKeys.ID] as? String {
+                        dict[Photo.InitKeys.id] = id
+                    } else {
+                        dict[Photo.InitKeys.id] = nil
+                    }
+                    
+                    // Add the Photo to the Core Data shared context
+                    var photo = Photo(dictionary:dict, context: self.sharedContext)
+                }
             }
+
+            // Persist all the photos we added to the Core Data shared context
             CoreDataStackManager.sharedInstance().saveContext()
         }
     }
-    
-    // TODO - replace flickrPhotos with NSFetchedResultsController
     
     /* Remove the Photo object from the Core data store */
     func deletePhoto(photo: Photo) {
@@ -585,10 +650,29 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         cell.imageView.image = UIImage(named: "placeholder.jpg") //TODO get rid of placeholder-photo.jpg
         //TODO - remove cell.setPictureForCell(picture)
         
-        if photo.image == nil {
-            // download image
-            println("photo.image == nil")
-        }
+//        if photo.image == nil {
+//            // download image
+//            println("photo.image == nil, downloading image")
+        
+            // Acquire the real image from the Photo object.
+            photo.getImage( { success, error, image in
+                if success {
+                    cell.imageView.image = image
+                } else {
+                    println("stick with placeholder image")
+                }
+            })
+            
+//            if let url = photo.imageUrl {
+//                photo.getImageFrom(url) { success, error, image in
+//                    if success {
+//                        photo.image = image
+//                    } else {
+//                        println("failed to download image. stick with placholder image.")
+//                    }
+//                })
+//            }
+//        }
     }
     
     // TODO: may no longer need this function:
@@ -608,7 +692,47 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     pictures (out) an array of UIImage objects, else empty array if an error occurred. (Note: a successful search can return an empty list.)
     @return Void
     */
-    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
+//    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, pictures: [UIImage]) -> Void) {
+//        
+//        if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
+//            //self.photoTitleLabel.text = "Searching..."
+//            let methodArguments = [
+//                "method": Flickr.Constants.METHOD_NAME,
+//                "api_key": Flickr.Constants.API_KEY,
+//                "bbox": createBoundingBoxString(),
+//                "safe_search": Flickr.Constants.SAFE_SEARCH,
+//                "extras": Flickr.Constants.EXTRAS,
+//                "format": Flickr.Constants.DATA_FORMAT,
+//                "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
+//            ]
+//            
+//            //startActivityIndicator() // TODO - move this to caller
+//            
+//            flickr.getImageFromFlickrBySearch(methodArguments) {
+//                success, error, pictures in
+//                
+//                if success == true {
+//                    completionHandler(success: true, error: nil, pictures: pictures)
+//                } else {
+//                    completionHandler(success: false, error: error, pictures: [] as [UIImage])
+//                }
+//            }
+//        } else {
+//            println("invalid latitude or longitude")
+//            let error = NSError(domain: "invalid latitude or longitude", code: 907, userInfo: nil)
+//            completionHandler(success: true, error: error, pictures: [] as [UIImage])
+//        }
+//    }
+    
+    /*
+    @brief Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates.
+    @param completionHandler (in)
+    success (out) true if flickr api search was successful, else false.
+    error (out) nil if success == true, else contains an NSError.
+    arrayOfDictionaries (out) An Array of Dictionaries containing image metadata. Nil if an error occurred or no images were found. Use the Keys structure members to access the values stored in each dictionary in the returned array.
+    @return Void
+    */
+    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, imageMetadata: [[String: AnyObject?]]?) -> Void) {
         
         if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
             //self.photoTitleLabel.text = "Searching..."
@@ -622,21 +746,19 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                 "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
             ]
             
-            //startActivityIndicator() // TODO - move this to caller
-            
-            flickr.getImageFromFlickrBySearch(methodArguments) {
-                success, error, pictures in
+            flickr.getImageMetadataFromFlickrBySearch(methodArguments) {
+                success, error, metaData in
                 
                 if success == true {
-                    completionHandler(success: true, error: nil, pictures: pictures)
+                    completionHandler(success: true, error: nil, imageMetadata: metaData)
                 } else {
-                    completionHandler(success: false, error: error, pictures: [] as [UIImage])
+                    completionHandler(success: false, error: error, imageMetadata: nil)
                 }
             }
         } else {
             println("invalid latitude or longitude")
             let error = NSError(domain: "invalid latitude or longitude", code: 907, userInfo: nil)
-            completionHandler(success: true, error: error, pictures: [] as [UIImage])
+            completionHandler(success: true, error: error, imageMetadata: nil)
         }
     }
     
