@@ -27,6 +27,9 @@ class Pin: NSManagedObject {
     
     static let entityName = "Pin"
     
+    /* These values are indexes for the flickr search for this Pin. */
+    var flickrPage: Int = 1 // TODO - change to @NSManaged and update Core Data model to persist this value.
+    
     var annotation: MKPointAnnotation {
         get {
             var annotation = MKPointAnnotation()
@@ -58,6 +61,5 @@ class Pin: NSManagedObject {
 /* Allows Pin instances to be compared.*/
 extension Pin: Equatable {}
 func ==(lhs: Pin, rhs: Pin) -> Bool {
-    println("Pin Equatable called")
     return ( (lhs.latitude == rhs.latitude) && (lhs.longitude == rhs.longitude) )
 }

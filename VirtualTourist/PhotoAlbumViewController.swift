@@ -14,12 +14,9 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
 */
 
-// TODO: placeholder images for cells in configureCell2
-// TODO: keep a counter in Flickr class (or caller) to the flickr search method instead of returning a random page
-// TODO: add metadata from flickr to Photo class to support sort descriptors in NSFetchedResultsController searches
-// TODO: store url in Photo class and have a computed property or function to do the download in a background thread.
 // TODO: properly define NSError strings as in CoreDataStackManager.swift. Update NSError objects in the app.
-
+// TODO: Why does new collection button take so long to enable?
+// Question: suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
 
 import UIKit
 import CoreData
@@ -29,12 +26,12 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
 
     var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
 
-    let BOUNDING_BOX_HALF_WIDTH = 1.0
-    let BOUNDING_BOX_HALF_HEIGHT = 1.0
-    let LAT_MIN = -90.0
-    let LAT_MAX = 90.0
-    let LON_MIN = -180.0
-    let LON_MAX = 180.0
+//    let BOUNDING_BOX_HALF_WIDTH = 1.0
+//    let BOUNDING_BOX_HALF_HEIGHT = 1.0
+//    let LAT_MIN = -90.0
+//    let LAT_MAX = 90.0
+//    let LON_MIN = -180.0
+//    let LON_MAX = 180.0
     
     private let sectionInsets = UIEdgeInsets(top: 5.0, left: 5.0, bottom: 5.0, right: 5.0)
     
@@ -184,28 +181,30 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // disable the New Collection button until the images are downloaded from flickr.
         newCollectionButton!.enabled = false
         
-        searchPhotosByLatLon2() {
-            success, error, imageMetadata in
-            if success == true {
-                // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
-                self.saveImageMetadataAsPhotos(imageMetadata)
-        
-                // halt the activity indicator
-                self.stopActivityIndicator()
-                
-                // enable the New Collection button.
-                self.newCollectionButton!.enabled = true
-                
-                // force the cells to update now that the images have been downloaded
-                dispatch_async(dispatch_get_main_queue()) {
-                    //self.view.setNeedsDisplay()
-                    self.collectionView.reloadData()
+        if let pin = self.pin {
+            self.flickr.searchPhotosByLatLon2(pin) {
+                success, error, imageMetadata in
+                if success == true {
+                    // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+                    self.saveImageMetadataAsPhotos(imageMetadata)
+            
+                    // halt the activity indicator
+                    self.stopActivityIndicator()
+                    
+                    // enable the New Collection button.
+                    self.newCollectionButton!.enabled = true
+                    
+                    // force the cells to update now that the images have been downloaded
+                    dispatch_async(dispatch_get_main_queue()) {
+                        //self.view.setNeedsDisplay()
+                        self.collectionView.reloadData()
+                    }
+                } else {
+                    // halt the activity indicator
+                    self.stopActivityIndicator()
+                    
+                    // TODO - report error to user
                 }
-            } else {
-                // halt the activity indicator
-                self.stopActivityIndicator()
-                
-                // TODO - report error to user
             }
         }
     }
@@ -461,20 +460,17 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     lazy var fetchedResultsController: NSFetchedResultsController = {
         // Create the fetch request
-        let fetchRequest = NSFetchRequest(entityName: Photo.entityName) // TODO: check that this should not be Pin.entityName.
+        let fetchRequest = NSFetchRequest(entityName: Photo.entityName)
         
-        // Add a sort descriptor to enforce a sort order on the results.
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "pin", ascending: false)] // TODO: does this work? can you sort on any class?
-//        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "imageData" /*Photo.keys.imageData*/, ascending: false)] // TODO - causes exception on saveContext!
-        // TODO: store some other metadata about a Photo in it's properties and sort based on one of those properties here. E.g. title.
-        
+        // Define the predicate (filter) for the query.
         if let pin = self.pin {
             fetchRequest.predicate = NSPredicate(format: "pin == %@", pin)
         } else {
             assert(self.pin != nil, "self.pin == nil in PhotoAlbumViewController") // TODO
         }
         
-//        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
+        // Add a sort descriptor to enforce a sort order on the results.
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
         
         // Create the Fetched Results Controller
         let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext:
@@ -732,73 +728,82 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     arrayOfDictionaries (out) An Array of Dictionaries containing image metadata. Nil if an error occurred or no images were found. Use the Keys structure members to access the values stored in each dictionary in the returned array.
     @return Void
     */
-    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, imageMetadata: [[String: AnyObject?]]?) -> Void) {
-        
-        if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
-            //self.photoTitleLabel.text = "Searching..."
-            let methodArguments = [
-                "method": Flickr.Constants.METHOD_NAME,
-                "api_key": Flickr.Constants.API_KEY,
-                "bbox": createBoundingBoxString(),
-                "safe_search": Flickr.Constants.SAFE_SEARCH,
-                "extras": Flickr.Constants.EXTRAS,
-                "format": Flickr.Constants.DATA_FORMAT,
-                "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
-            ]
-            
-            flickr.getImageMetadataFromFlickrBySearch(methodArguments) {
-                success, error, metaData in
-                
-                if success == true {
-                    completionHandler(success: true, error: nil, imageMetadata: metaData)
-                } else {
-                    completionHandler(success: false, error: error, imageMetadata: nil)
-                }
-            }
-        } else {
-            println("invalid latitude or longitude")
-            let error = NSError(domain: "invalid latitude or longitude", code: 907, userInfo: nil)
-            completionHandler(success: true, error: error, imageMetadata: nil)
-        }
-    }
+//    func searchPhotosByLatLon2(completionHandler: (success: Bool, error: NSError?, imageMetadata: [[String: AnyObject?]]?) -> Void) {
+//        
+//        if validLatitude(pin?.coordinate.latitude) && validLongitude(pin?.coordinate.longitude) {
+//            //self.photoTitleLabel.text = "Searching..."
+//            let methodArguments = [
+//                "method": Flickr.Constants.METHOD_NAME,
+//                "api_key": Flickr.Constants.API_KEY,
+//                "bbox": createBoundingBoxString(),
+//                "safe_search": Flickr.Constants.SAFE_SEARCH,
+//                "extras": Flickr.Constants.EXTRAS,
+//                "format": Flickr.Constants.DATA_FORMAT,
+//                "nojsoncallback": Flickr.Constants.NO_JSON_CALLBACK
+//            ]
+//            
+//            var flickrPage = 1
+//            if let pageIndex = self.pin?.flickrPage {
+//                flickrPage = pageIndex
+//            }
+//            
+//            flickr.searchFlickrForImageMetadataWith(methodArguments, page: flickrPage) {
+//                success, error, metaData, updatedPage in
+//                
+//                if let pin = self.pin {
+//                    self.pin!.flickrPage = updatedPage
+//                }
+//                
+//                if success == true {
+//                    completionHandler(success: true, error: nil, imageMetadata: metaData)
+//                } else {
+//                    completionHandler(success: false, error: error, imageMetadata: nil)
+//                }
+//            }
+//        } else {
+//            println("invalid latitude or longitude")
+//            let error = NSError(domain: "invalid latitude or longitude", code: 907, userInfo: nil)
+//            completionHandler(success: true, error: error, imageMetadata: nil)
+//        }
+//    }
     
-    /* Check to make sure the latitude falls within [-90, 90] */
-    func validLatitude(lat: Double?) -> Bool {
-        if let latitude : Double? = lat {
-            if latitude < LAT_MIN || latitude > LAT_MAX {
-                return false
-            }
-        } else {
-            return false
-        }
-        return true
-    }
+//    /* Check to make sure the latitude falls within [-90, 90] */
+//    func validLatitude(lat: Double?) -> Bool {
+//        if let latitude : Double? = lat {
+//            if latitude < LAT_MIN || latitude > LAT_MAX {
+//                return false
+//            }
+//        } else {
+//            return false
+//        }
+//        return true
+//    }
+//    
+//    /* Check to make sure the longitude falls within [-180, 180] */
+//    func validLongitude(lon: Double?) -> Bool {
+//        if let longitude : Double? = lon {
+//            if longitude < LON_MIN || longitude > LON_MAX {
+//                return false
+//            }
+//        } else {
+//            return false
+//        }
+//        return true
+//    }
     
-    /* Check to make sure the longitude falls within [-180, 180] */
-    func validLongitude(lon: Double?) -> Bool {
-        if let longitude : Double? = lon {
-            if longitude < LON_MIN || longitude > LON_MAX {
-                return false
-            }
-        } else {
-            return false
-        }
-        return true
-    }
-    
-    func createBoundingBoxString() -> String {
-        
-        let latitude = pin?.coordinate.latitude
-        let longitude = pin?.coordinate.longitude
-        
-        /* Fix added to ensure box is bounded by minimum and maximums */
-        let bottom_left_lon = max(longitude! - BOUNDING_BOX_HALF_WIDTH, LON_MIN)
-        let bottom_left_lat = max(latitude! - BOUNDING_BOX_HALF_HEIGHT, LAT_MIN)
-        let top_right_lon = min(longitude! + BOUNDING_BOX_HALF_HEIGHT, LON_MAX)
-        let top_right_lat = min(latitude! + BOUNDING_BOX_HALF_HEIGHT, LAT_MAX)
-        
-        return "\(bottom_left_lon),\(bottom_left_lat),\(top_right_lon),\(top_right_lat)"
-    }
+//    func createBoundingBoxString() -> String {
+//        
+//        let latitude = pin?.coordinate.latitude
+//        let longitude = pin?.coordinate.longitude
+//        
+//        /* Fix added to ensure box is bounded by minimum and maximums */
+//        let bottom_left_lon = max(longitude! - BOUNDING_BOX_HALF_WIDTH, LON_MIN)
+//        let bottom_left_lat = max(latitude! - BOUNDING_BOX_HALF_HEIGHT, LAT_MIN)
+//        let top_right_lon = min(longitude! + BOUNDING_BOX_HALF_HEIGHT, LON_MAX)
+//        let top_right_lat = min(latitude! + BOUNDING_BOX_HALF_HEIGHT, LAT_MAX)
+//        
+//        return "\(bottom_left_lon),\(bottom_left_lat),\(top_right_lon),\(top_right_lat)"
+//    }
 }
 
 

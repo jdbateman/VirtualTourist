@@ -188,8 +188,8 @@
                                             <outlet property="delegate" destination="aD1-Tc-Ndw" id="Ja9-iI-r7q"/>
                                         </connections>
                                     </collectionView>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="No Images" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tZS-Tg-Xww">
-                                        <rect key="frame" x="250" y="136" width="100" height="21"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="No Images" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tZS-Tg-Xww">
+                                        <rect key="frame" x="259" y="180" width="83" height="21"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                         <color key="textColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         <nil key="highlightedColor"/>
@@ -198,10 +198,12 @@
                                 <color key="backgroundColor" cocoaTouchSystemColor="scrollViewTexturedBackgroundColor"/>
                                 <constraints>
                                     <constraint firstAttribute="centerX" secondItem="YVo-Yj-05o" secondAttribute="centerX" id="3gH-y8-ThO"/>
+                                    <constraint firstAttribute="centerY" secondItem="tZS-Tg-Xww" secondAttribute="centerY" constant="14" id="FnQ-9R-5Gp"/>
                                     <constraint firstAttribute="bottom" secondItem="YVo-Yj-05o" secondAttribute="bottom" id="Nxi-CI-l52"/>
                                     <constraint firstAttribute="centerX" secondItem="tZS-Tg-Xww" secondAttribute="centerX" id="Oot-3P-2So"/>
                                     <constraint firstAttribute="trailing" secondItem="YVo-Yj-05o" secondAttribute="trailing" id="VH9-pC-0X9"/>
-                                    <constraint firstItem="tZS-Tg-Xww" firstAttribute="top" secondItem="k4H-KJ-EP9" secondAttribute="top" constant="136" id="Zcw-Ar-XAF"/>
+                                    <constraint firstAttribute="centerX" secondItem="tZS-Tg-Xww" secondAttribute="centerX" id="ZRf-sF-N63"/>
+                                    <constraint firstItem="tZS-Tg-Xww" firstAttribute="top" secondItem="k4H-KJ-EP9" secondAttribute="top" constant="180" id="Zcw-Ar-XAF"/>
                                     <constraint firstItem="YVo-Yj-05o" firstAttribute="leading" secondItem="k4H-KJ-EP9" secondAttribute="leading" id="nRN-pr-4Yx"/>
                                     <constraint firstItem="YVo-Yj-05o" firstAttribute="top" secondItem="k4H-KJ-EP9" secondAttribute="top" id="pwF-Se-aYG"/>
                                 </constraints>

@@ -39,20 +39,8 @@ class Photo : NSManagedObject {
     /* id of flickr image. Used as base of filename for associated NSData stored on local disk. */
     @NSManaged var id: String?
     
-    // UIImage computed from imageData property
-//    var image: UIImage? {
-//        get {
-//            if let theData = imageData {
-//                return UIImage(data: theData)
-//            } else {
-//                return nil
-//            }
-//        }
-//    }
-    
+    /* The UIImage representation of the picture data. Acquire using the getImage method. */
     var image: UIImage?
-        
-
     
     /* Core Data init method */
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
@@ -103,9 +91,8 @@ class Photo : NSManagedObject {
             }
         }
         
-        // Try loading the data from Core Data.
+//        // Try loading the data from Core Data.
 //        if let imageData = self.imageData {
-//            // TODO: (1) load from file system instead of from coredata - instead store filepath in core data
 //            println("image loaded from core data")
 //            completion(success: true, error: nil, image: UIImage(data: imageData))
 //            return
@@ -113,23 +100,29 @@ class Photo : NSManagedObject {
 
         // Load the image from the server asynchronously on a background queue.
         if let url = self.imageUrl {
-            self.getImageFrom(url) { success, error, theImage in
+            self.dowloadImageFrom(url) { success, error, theImage in
                 if success {
                     if let theImage = theImage {
                         // retrieve the image data
                         let imageData = UIImageJPEGRepresentation(theImage, 1)
                         
-                        // save the image data to the Photo property
-                        self.imageData = imageData
+//                        // save the image data to the Photo property (Will be captured in Core Data on next saveContext)
+//                        self.imageData = imageData
                         
                         // save the image data to the file system
                         if let id = self.id {
-                            self.saveImageToFileSystem(id, image: theImage)
+                            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+                            dispatch_async(backgroundQueue, {
+                                self.saveImageToFileSystem(id, image: theImage)
+                            })
                         }
                         
                         // save the image to the image cache
                         if let url = self.imageUrl {
-                            NSCache.sharedInstance.setObject(theImage, forKey: url)
+                            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+                            dispatch_async(backgroundQueue, {
+                                NSCache.sharedInstance.setObject(theImage, forKey: url)
+                            })
                         }
                     }
                     println("image downloaded from server")
@@ -144,6 +137,10 @@ class Photo : NSManagedObject {
             }
         }
     }
+}
+
+/* Image management helper functions */
+extension Photo {
     
     /* Save image to a file with the name filename on the filesystem in the Documents directory. */
     func saveImageToFileSystem(filename: String, image: UIImage?) {
@@ -177,40 +174,27 @@ class Photo : NSManagedObject {
         let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as! String
         let pathArray = [dirPath, filename]
         let fileURL =  NSURL.fileURLWithPathComponents(pathArray)!
-        println("path for \(filename) is \(fileURL.path)")
         return fileURL.path
     }
     
-    /* Return the path to filename in the app’s Documents directory */
-    func getPathForImageFileWith(filename: String) -> String? {
-        let documentsDirectoryURL: NSURL = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
-        let fullURL = documentsDirectoryURL.URLByAppendingPathComponent(filename)
-        return fullURL.path
-    }
-    
-    // TODO: under construction. what to do after we succeed or fail in pulling down the image on the background thread?
-    func getImageFrom(imageUrlString: String?, completion: (success: Bool, error: NSError?, image: UIImage?) -> Void) {
+    // Download the image identified by imageUrlString in a background thread, convert it to a UIImage object, and return the object.
+    func dowloadImageFrom(imageUrlString: String?, completion: (success: Bool, error: NSError?, image: UIImage?) -> Void) {
         
         let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
         dispatch_async(backgroundQueue, {
             // get the binary image data
             let imageURL = NSURL(string: imageUrlString!)
             if let imageData = NSData(contentsOfURL: imageURL!) {
-            
+                
                 // Convert the image data to a UIImage object and append to the array to be returned.
                 if let picture = UIImage(data: imageData) {
                     completion(success: true, error: nil, image: picture)
-                    
-//                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
-//                        println("TODO: what to do here?")
-//                        
-//                    })
                 }
                 else {
                     let error = NSError(domain: "cannot convert image data", code: 908, userInfo: nil)
                     completion(success: false, error: error, image: nil)
                 }
-
+                
             } else {
                 println("Image does not exist at \(imageURL)")
                 let error = NSError(domain: "Image does not exist at \(imageURL)", code: 904, userInfo: nil)
@@ -223,6 +207,5 @@ class Photo : NSManagedObject {
 /* Allows Photo instances to be compared.*/
 extension Photo: Equatable {}
 func ==(lhs: Photo, rhs: Photo) -> Bool {
-    println("Photo Equatable called")
-    return ( /*(lhs.imageData == rhs.imageData) && */(lhs.pin == rhs.pin) )  // TODO - update to use other metadata for comparison like title or url_m
+    return ( lhs.id == rhs.id )
 }
