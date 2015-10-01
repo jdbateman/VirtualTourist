@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9E1981401BBC8F2C00F397C1 /* NSCache+Singleton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E19813F1BBC8F2C00F397C1 /* NSCache+Singleton.swift */; };
 		9E5518981BB4E4910024F284 /* placeholder.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9E5518971BB4E4910024F284 /* placeholder.jpg */; };
 		9E55189A1BB4E5C20024F284 /* placeholder-photo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9E5518991BB4E5C20024F284 /* placeholder-photo.jpg */; };
 		9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */; };
@@ -39,6 +40,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9E19813F1BBC8F2C00F397C1 /* NSCache+Singleton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSCache+Singleton.swift"; sourceTree = "<group>"; };
 		9E5518971BB4E4910024F284 /* placeholder.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = placeholder.jpg; sourceTree = "<group>"; };
 		9E5518991BB4E5C20024F284 /* placeholder-photo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "placeholder-photo.jpg"; sourceTree = "<group>"; };
 		9E8FB9E21BA91BA400A8E099 /* VirtualTourist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VirtualTourist.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -153,6 +155,7 @@
 				9E8FBA131BACA13B00A8E099 /* MapRegion.swift */,
 				9ED9794A1BB0A83F002FBE65 /* Flickr.swift */,
 				9ED979501BB21F94002FBE65 /* Photo.swift */,
+				9E19813F1BBC8F2C00F397C1 /* NSCache+Singleton.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -272,6 +275,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9ED979511BB21F94002FBE65 /* Photo.swift in Sources */,
+				9E1981401BBC8F2C00F397C1 /* NSCache+Singleton.swift in Sources */,
 				9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */,
 				9ED979451BAE2ED1002FBE65 /* PhotoAlbumCell.swift in Sources */,
 				9ED9794B1BB0A83F002FBE65 /* Flickr.swift in Sources */,

@@ -18,7 +18,7 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 // TODO: keep a counter in Flickr class (or caller) to the flickr search method instead of returning a random page
 // TODO: add metadata from flickr to Photo class to support sort descriptors in NSFetchedResultsController searches
 // TODO: store url in Photo class and have a computed property or function to do the download in a background thread.
-
+// TODO: properly define NSError strings as in CoreDataStackManager.swift. Update NSError objects in the app.
 
 
 import UIKit

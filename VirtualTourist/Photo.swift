@@ -24,17 +24,19 @@ class Photo : NSManagedObject {
     
     static let entityName = "Photo"
     
-    // JPEG image data for the meme picture
+    /* JPEG image data for the Photo. */
     @NSManaged var imageData: NSData?
     
-    // pin to which the image belongs
+    /* Pin object to which the image belongs */
     @NSManaged var pin: Pin?
     
-    // url for the image
+    /* url identifying the location of the image prior to download to the local device. */
     @NSManaged var imageUrl: String?
     
+    /* title bestowed on image by flickr user */
     @NSManaged var title: String?
     
+    /* id of flickr image. Used as base of filename for associated NSData stored on local disk. */
     @NSManaged var id: String?
     
     // UIImage computed from imageData property
@@ -83,31 +85,107 @@ class Photo : NSManagedObject {
     */
     func getImage(completion: (success: Bool, error: NSError?, image: UIImage?) -> Void ) {
         
-        if let imageData = self.imageData {
-            completion(success: true, error: nil, image: UIImage(data: imageData))
-        } else {
-            
-            // TODO: load from image cache
-            
-            // TODO: load from file system
-            
-            // load from server
-            if let url = self.imageUrl {
-                self.getImageFrom(url) { success, error, theImage in
-                    if success {
-                        // save the image data to the Photo property
-                        self.imageData = UIImageJPEGRepresentation(theImage, 1)
+        // Try loading the image from the image cache.
+        if let url = self.imageUrl {
+            if let theImage: UIImage = NSCache.sharedInstance.objectForKey(url) as? UIImage {
+                println("image loaded from cache")
+                completion(success: true, error: nil, image: theImage)
+                return
+            }
+        }
+        
+        // Try loading the data from the file system.
+        if let id = self.id {
+            if let image = getImageFromFileSystem(id) {
+                println("image loaded from file system")
+                completion(success: true, error: nil, image: image)
+                return
+            }
+        }
+        
+        // Try loading the data from Core Data.
+//        if let imageData = self.imageData {
+//            // TODO: (1) load from file system instead of from coredata - instead store filepath in core data
+//            println("image loaded from core data")
+//            completion(success: true, error: nil, image: UIImage(data: imageData))
+//            return
+//        }
+
+        // Load the image from the server asynchronously on a background queue.
+        if let url = self.imageUrl {
+            self.getImageFrom(url) { success, error, theImage in
+                if success {
+                    if let theImage = theImage {
+                        // retrieve the image data
+                        let imageData = UIImageJPEGRepresentation(theImage, 1)
                         
-                        completion(success: true, error: nil, image: theImage)
-                    } else {
-                        // TODO - handle the failed download by retrying once?
-                        println("failed to download image. stick with placholder image.")
-                        var error: NSError = NSError(domain: "Image download failed.", code: 909, userInfo: nil)
-                        completion(success: false, error: error, image: nil)
+                        // save the image data to the Photo property
+                        self.imageData = imageData
+                        
+                        // save the image data to the file system
+                        if let id = self.id {
+                            self.saveImageToFileSystem(id, image: theImage)
+                        }
+                        
+                        // save the image to the image cache
+                        if let url = self.imageUrl {
+                            NSCache.sharedInstance.setObject(theImage, forKey: url)
+                        }
                     }
+                    println("image downloaded from server")
+                    completion(success: true, error: nil, image: theImage)
+                    return
+                } else {
+                    // TODO - handle the failed download by retrying once?
+                    println("failed to download image. stick with placholder image.")
+                    var error: NSError = NSError(domain: "Image download failed.", code: 909, userInfo: nil)
+                    completion(success: false, error: error, image: nil)
                 }
             }
         }
+    }
+    
+    /* Save image to a file with the name filename on the filesystem in the Documents directory. */
+    func saveImageToFileSystem(filename: String, image: UIImage?) {
+        if let image = image {
+            let imageData = UIImageJPEGRepresentation(image, 1)
+            let path = pathForImageFileWith(filename)
+            if let path = path {
+                imageData.writeToFile(path, atomically: true)
+            }
+        }
+    }
+    
+    /* Load the data from filename and return as a UIImage object. */
+    func getImageFromFileSystem(filename: String) -> UIImage? {
+        let path = pathForImageFileWith(filename)
+        if let path = path {
+            if NSFileManager.defaultManager().fileExistsAtPath(path) {
+                let imageData = NSFileManager.defaultManager().contentsAtPath(path)
+                if let imageData = imageData {
+                    let image = UIImage(data: imageData)
+                    return image
+                }
+            }
+        }
+        return nil
+    }
+    
+    /* Return the path to filename in the app’s Documents directory */
+    func pathForImageFileWith(filename: String) -> String? {
+        // the Documents directory's path is returned as a one-element array.
+        let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as! String
+        let pathArray = [dirPath, filename]
+        let fileURL =  NSURL.fileURLWithPathComponents(pathArray)!
+        println("path for \(filename) is \(fileURL.path)")
+        return fileURL.path
+    }
+    
+    /* Return the path to filename in the app’s Documents directory */
+    func getPathForImageFileWith(filename: String) -> String? {
+        let documentsDirectoryURL: NSURL = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first as! NSURL
+        let fullURL = documentsDirectoryURL.URLByAppendingPathComponent(filename)
+        return fullURL.path
     }
     
     // TODO: under construction. what to do after we succeed or fail in pulling down the image on the background thread?
