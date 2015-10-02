@@ -14,6 +14,7 @@
         <relationship name="pin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Pin" inverseName="photos" inverseEntity="Pin" syncable="YES"/>
     </entity>
     <entity name="Pin" representedClassName="Pin" syncable="YES">
+        <attribute name="flickrPage" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
         <attribute name="latitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
         <attribute name="longitude" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
         <relationship name="photos" toMany="YES" deletionRule="Cascade" ordered="YES" destinationEntity="Photo" inverseName="pin" inverseEntity="Photo" syncable="YES"/>
@@ -21,6 +22,6 @@
     <elements>
         <element name="MapRegion" positionX="288" positionY="225" width="128" height="30"/>
         <element name="Photo" positionX="270" positionY="207" width="128" height="120"/>
-        <element name="Pin" positionX="261" positionY="198" width="128" height="90"/>
+        <element name="Pin" positionX="261" positionY="198" width="128" height="105"/>
     </elements>
 </model>

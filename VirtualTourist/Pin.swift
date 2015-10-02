@@ -18,7 +18,10 @@ class Pin: NSManagedObject {
     @NSManaged var latitude: NSNumber
     @NSManaged var longitude: NSNumber
     @NSManaged var photos: [Photo]
-    
+
+    /* The index of the page to request when the next flickr search query is made for this Pin. */
+    @NSManaged var flickrPage: NSNumber
+
     struct Keys {
         static let latitude: String = "latitude"
         static let longitude: String = "longitude"
@@ -26,9 +29,6 @@ class Pin: NSManagedObject {
     }
     
     static let entityName = "Pin"
-    
-    /* These values are indexes for the flickr search for this Pin. */
-    var flickrPage: Int = 1 // TODO - change to @NSManaged and update Core Data model to persist this value.
     
     var annotation: MKPointAnnotation {
         get {
@@ -55,6 +55,7 @@ class Pin: NSManagedObject {
         
         latitude = dictionary[Keys.latitude] as! Double
         longitude = dictionary[Keys.longitude] as! Double
+        flickrPage = 1
     }
 }
 

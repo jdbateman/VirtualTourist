@@ -60,7 +60,7 @@ class Flickr {
         nextPage
     @return void (out) The next page in the sequence of images for this gps location.
     */
-    func searchFlickrForImageMetadataWith(methodArguments: [String : AnyObject], page: Int, completionHandler: (success: Bool, error: NSError?, arrayOfDictionaries: [[String: AnyObject?]]?, nextPage: Int) -> Void) {
+    func searchFlickrForImageMetadataWith(methodArguments: [String : AnyObject], page: Int32, completionHandler: (success: Bool, error: NSError?, arrayOfDictionaries: [[String: AnyObject?]]?, nextPage: Int32) -> Void) {
         
         let session = NSURLSession.sharedSession()
         let urlString = Constants.BASE_URL + escapedParameters(methodArguments)
@@ -83,20 +83,27 @@ class Flickr {
                         let pageLimit = min(totalPages, 40)
                         
                         // Roll over page number when it exceeds the page limit identified by flickr for this search.
-                        var pageNum = page
+                        var pageNum: Int = Int(page)
                         if pageNum > pageLimit {
                             pageNum = 1
                         }
+                        
+                        //var test: Int32 = 7
                         
                         // generate a random page number in the limit
                         //let randomPage = Int(arc4random_uniform(UInt32(pageLimit))) + 1
                         
                         // Search a particular page of results.
-                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum) {
-                            success, error, arrayOfDicts in
-                            completionHandler(success: success, error: error, arrayOfDictionaries: arrayOfDicts, nextPage: ++pageNum)
+                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum) { success, error, arrayOfDicts in
+//  worked:                       self.xFoo(methodArguments, pageNumber: pageNum) { success, error in
+//                        self.xFoo(methodArguments, pageNum) { success, error, arrayOfDicts in
+//                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum, completion: {(success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void in
+//                            
+//                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum) {
+//                            success, error, arrayOfDicts in
+//                            var arrayOfDicts = [["key1":5], ["key2":4]] as [[String: AnyObject?]]?
+                            completionHandler(success: success, error: error, arrayOfDictionaries: arrayOfDicts, nextPage: Int32(++pageNum))
                         }
-                        
                     } else {
                         println("Cant find key 'pages' in \(photosDictionary)")
                         var error: NSError = NSError(domain: "Cant find key 'pages' in \(photosDictionary)", code: 905, userInfo: nil)
@@ -123,7 +130,16 @@ class Flickr {
         arrayOfDicts (out) An Array of Dictionaries containing metadata for each image. Nil if an error occurred or if no image data was found.
     @return void
     */
+
     func searchFlickrForImageMetadataByPageWith(methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void) {
+
+    
+// worked:    func xFoo (methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?) -> Void) {
+
+    //searchFlickrForImageMetadataByPageWith
+//    func xFoo (methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void) {
+
+    
         
         /* Add the page to the method's arguments */
         var withPageDictionary = methodArguments
@@ -156,8 +172,8 @@ class Flickr {
                             var picturesToReturn = [UIImage]()
                             var dictionariesToReturn = [[String: AnyObject?]]()
                             
-                            //let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
-                            let numPhotosToFetch = photosArray.count
+                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
+                            // TODO: reenable: let numPhotosToFetch = photosArray.count
                             
                             println("Flickr.getImageUrlsFromFlickrBySearchWithPage reports \(photosArray.count) photos found on page \(pageNumber).")
                             
@@ -229,31 +245,35 @@ class Flickr {
 
 }
 
-/* Flickr convenience extension. */
+/* Flickr api convenience method and supporting helper functions. */
 extension Flickr {
     
     static let BOUNDING_BOX_HALF_WIDTH = 1.0
     static let BOUNDING_BOX_HALF_HEIGHT = 1.0
-    static let LAT_MIN = -90.0
-    static let LAT_MAX = 90.0
-    static let LON_MIN = -180.0
-    static let LON_MAX = 180.0
+    static let LATITUDE_MIN = -90.0
+    static let LATITUDE_MAX = 90.0
+    static let LONGITUDE_MIN = -180.0
+    static let LONGITUDE_MAX = 180.0
 
     /*
-    @brief Initializes the photo album (self.flickrPhotos) with the results of a flickr api image search by geo coordinates.
+    @brief Query the flickr api for images associated with the specified 2D coordinates.
     @param completionHandler (in)
     success (out) true if flickr api search was successful, else false.
     error (out) nil if success == true, else contains an NSError.
     arrayOfDictionaries (out) An Array of Dictionaries containing image metadata. Nil if an error occurred or no images were found. Use the Keys structure members to access the values stored in each dictionary in the returned array.
     @return Void
     */
-    func searchPhotosByLatLon2(pin: Pin, completionHandler: (success: Bool, error: NSError?, imageMetadata: [[String: AnyObject?]]?) -> Void) {
+    func searchPhotosBy2DCoordinates(pin: Pin,
+        completionHandler: (success: Bool, error: NSError?, imageMetadata: [[String: AnyObject?]]?) -> Void) {
         
         //self.photoTitleLabel.text = "Searching..."
         let methodArguments = [
             "method": Flickr.Constants.METHOD_NAME,
             "api_key": Flickr.Constants.API_KEY,
-            "bbox": createBoundingBoxString(pin.coordinate.latitude, longitude: pin.coordinate.longitude),
+
+            /* geo (or bounding box) queries will only return 250 results per page. */
+            "bbox": getBoundingBox(pin.coordinate.latitude, longitude: pin.coordinate.longitude),
+    
             "safe_search": Flickr.Constants.SAFE_SEARCH,
             "extras": Flickr.Constants.EXTRAS,
             "format": Flickr.Constants.DATA_FORMAT,
@@ -261,16 +281,12 @@ extension Flickr {
         ]
         
         var flickrPage = pin.flickrPage
-//        if let pageIndex = pin.flickrPage {
-//            flickrPage = pageIndex
-//        }
         
-        self.searchFlickrForImageMetadataWith(methodArguments, page: flickrPage) {
-            success, error, metaData, updatedPage in
+        self.searchFlickrForImageMetadataWith(methodArguments, page: flickrPage.intValue) {
+            success, error, metaData, nextPage in
             
-//            if let pin = self.pin {
-                pin.flickrPage = updatedPage  // TODO - ensure this can update the pin (it should since pin is a reference type object)
-//            }
+            // Update the page number to request for this coordinate when the next flickr request is made.
+            pin.flickrPage = NSNumber(int: nextPage)
             
             if success == true {
                 completionHandler(success: true, error: nil, imageMetadata: metaData)
@@ -280,17 +296,13 @@ extension Flickr {
         }
     }
     
-    /* Ensure box is bounded by minimum and maximums */
-    func createBoundingBoxString(latitude: Double, longitude: Double) -> String {
+    /* Return a string defining two points of a box which bounds the specified coordinate.*/
+    func getBoundingBox(latitude: Double, longitude: Double) -> String {
+        let bottomLeftLongitude = max(longitude - Flickr.BOUNDING_BOX_HALF_WIDTH, Flickr.LONGITUDE_MIN)
+        let bottomLeftLatitude = max(latitude - Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LATITUDE_MIN)
+        let topRightLongitude = min(longitude + Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LONGITUDE_MAX)
+        let topRightLatitude = min(latitude + Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LATITUDE_MAX)
         
-//        let latitude = pin?.coordinate.latitude
-//        let longitude = pin?.coordinate.longitude
-        
-        let bottom_left_lon = max(longitude - Flickr.BOUNDING_BOX_HALF_WIDTH, Flickr.LON_MIN)
-        let bottom_left_lat = max(latitude - Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LAT_MIN)
-        let top_right_lon = min(longitude + Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LON_MAX)
-        let top_right_lat = min(latitude + Flickr.BOUNDING_BOX_HALF_HEIGHT, Flickr.LAT_MAX)
-        
-        return "\(bottom_left_lon),\(bottom_left_lat),\(top_right_lon),\(top_right_lat)"
+        return "\(bottomLeftLongitude),\(bottomLeftLatitude),\(topRightLongitude),\(topRightLatitude)"
     }
 }
