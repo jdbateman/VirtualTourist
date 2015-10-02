@@ -14,11 +14,11 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
 */
 
-// TODO: remove flickrPhotos
 // TODO: properly define NSError strings as in CoreDataStackManager.swift. Update NSError objects in the app.
 // Question: Why does the New Collection button take so long to enable?
 // Question: suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
 // Question: is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
+// Question: An image has been downloaded and is available in memory to be rendered on a cell in PhotoAlbumViewController. Can I eliminate the delay between the time cell.stopActivityIndicator() is called in the PhotoAlbumViewController.configureCell method, and the time when the image is actually rendered for that cell? The delay can be a couple of seconds. I tried calling setNeedsDisplay() but that didn't seem to help.
 
 import UIKit
 import CoreData
@@ -53,13 +53,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     var deletedIndexPaths: [NSIndexPath]!
     var updatedIndexPaths: [NSIndexPath]!
     
-    //var flickrImage: UIImage?
-    //var flickrImages = [UIImage]()
-    //var flickrPhotos = [Photo]() // TODO: flickrPhotos - remove.
-    // TODO flickrPhotos keeps growing every time I do a search
-    // TODO photos are no longer filling in after deletes
-    
-    // TODO - load placeholder images for each cell why images are downloading. determine how many images to load.
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -90,26 +83,16 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // enable display of the navigation controller's toolbar
         self.navigationController?.setToolbarHidden(false, animated: true)
         
-        // Initialize flickrPhotos from the view controller's current pin.photos.
+        // Initialize flickrPhotos from flickr if the current pin did not contain any photos.
         if let pin = pin {
-            //flickrPhotos = pin.photos // TODO: flickrPhotos - remove.
-            
-            // TODO - need to replace above line with a fetchRequest for all Photos associated with this pin.
-            
             // enable the New Collection button
             newCollectionButton!.enabled = true
-        }
-        
-        // Initialize flickrPhotos from flickr if the current pin did not contain any photos.
-        //if flickrPhotos.count == 0 { // TODO: flickrPhotos - remove.
-        if let pin = pin {
+            
+            // Fetch images from flickr if there are none associated with the currently selected pin.
             if pin.photos.count == 0 {
                 initializePhotos()
             }
         }
-        
-        // set the layout for the collection view - TODO: figure out how to get spaces between cells
-//        setCollectionViewLayout()
     }
     
     override func viewDidDisappear(animated: Bool) {
@@ -205,7 +188,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoAlbumCellID", forIndexPath: indexPath) as! PhotoAlbumCell
         
-        self.configureCell2(cell, atIndexPath: indexPath)
+        self.configureCell(cell, atIndexPath: indexPath)
         
         return cell
     }
@@ -441,49 +424,26 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         }
     }
     
-    /* Set cell image to Photo.image. If no image exists yet do nothing. */
+    /* Set the cell image. */
     func configureCell(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
         
-        let photo = self.fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
-        var image: UIImage? = photo.image
-        
-        if let image = image {
-            cell.imageView.image = image
-        }
-    }
-    
-    /* Set cell image to the placeholder image. If no image is identified in the Photo object download the image from Flickr. */
-    func configureCell2(cell: PhotoAlbumCell, atIndexPath indexPath: NSIndexPath) {
+        cell.startActivityIndicator()
         
         let photo = self.fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
         
         // set placeholder image
-        cell.imageView.image = UIImage(named: "placeholder.jpg") //TODO get rid of placeholder-photo.jpg
-        //TODO - remove cell.setPictureForCell(picture)
+        cell.imageView.image = UIImage(named: "placeholder.jpg")
         
-//        if photo.image == nil {
-//            // download image
-//            println("photo.image == nil, downloading image")
-        
-            // Acquire the real image from the Photo object.
-            photo.getImage( { success, error, image in
-                if success {
-                    cell.imageView.image = image
-                } else {
-                    println("stick with placeholder image")
-                }
-            })
-            
-//            if let url = photo.imageUrl {
-//                photo.getImageFrom(url) { success, error, image in
-//                    if success {
-//                        photo.image = image
-//                    } else {
-//                        println("failed to download image. stick with placholder image.")
-//                    }
-//                })
-//            }
-//        }
+        // Acquire the image from the Photo object.
+        photo.getImage( { success, error, image in
+            if success {
+                cell.imageView.image = image
+                cell.stopActivityIndicator()
+                //self.collectionView.setNeedsDisplay()
+            } else {
+                cell.stopActivityIndicator()
+            }
+        })
     }
 }
 

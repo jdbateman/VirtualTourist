@@ -9,6 +9,24 @@
 import UIKit
 
 class PhotoAlbumCell: UICollectionViewCell {
-    
+
+    var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
+
     @IBOutlet weak var imageView: UIImageView!
+    
+    /* show activity indicator */
+    func startActivityIndicator() {
+        activityIndicator.center = self.imageView.center
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.WhiteLarge
+        imageView.addSubview(activityIndicator)
+        activityIndicator.startAnimating()
+    }
+    
+    /* hide acitivity indicator */
+    func stopActivityIndicator() {
+        dispatch_async(dispatch_get_main_queue()) {
+            self.activityIndicator.stopAnimating()
+        }
+    }
 }
