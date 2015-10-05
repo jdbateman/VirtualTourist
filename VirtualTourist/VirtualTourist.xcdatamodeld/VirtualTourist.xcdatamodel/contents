@@ -8,7 +8,6 @@
     </entity>
     <entity name="Photo" representedClassName="Photo" syncable="YES">
         <attribute name="id" optional="YES" attributeType="String" syncable="YES"/>
-        <attribute name="imageData" optional="YES" attributeType="Binary" syncable="YES"/>
         <attribute name="imageUrl" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
         <relationship name="pin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Pin" inverseName="photos" inverseEntity="Pin" syncable="YES"/>
@@ -21,7 +20,7 @@
     </entity>
     <elements>
         <element name="MapRegion" positionX="288" positionY="225" width="128" height="30"/>
-        <element name="Photo" positionX="270" positionY="207" width="128" height="120"/>
+        <element name="Photo" positionX="270" positionY="207" width="128" height="105"/>
         <element name="Pin" positionX="261" positionY="198" width="128" height="105"/>
     </elements>
 </model>

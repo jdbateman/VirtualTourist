@@ -6,10 +6,6 @@
 //  Copyright (c) 2015 John Bateman. All rights reserved.
 //
 
-// TODO: [Done] When a photo is removed from an album, the PhotoAlbumViewController explicitly deletes the underlying file in the Documents directory.
-// Better though would be the following:
-// TODO: Udacious - Underlying files are automatically deleted when a Photo object is removed from Core Data, using code in the Photo managed object.
-
 import Foundation
 import CoreData
 import UIKit
@@ -19,7 +15,7 @@ import UIKit
 class Photo : NSManagedObject {
     
     struct InitKeys {
-        static let imageData: String = "imageData"
+        //static let imageData: String = "imageData"
         static let pin: String = "pin"
         static let imageUrl: String = "imageUrl"
         static let title: String = "title"
@@ -29,7 +25,7 @@ class Photo : NSManagedObject {
     static let entityName = "Photo"
     
     /* JPEG image data for the Photo. */
-    @NSManaged var imageData: NSData?   // TODO: remove @NSManaged and remove from xcdatamodeld
+//    /*@NSManaged*/ var imageData: NSData?   // TODO: remove @NSManaged and remove from xcdatamodeld
     
     /* Pin object to which the image belongs */
     @NSManaged var pin: Pin?
@@ -57,7 +53,7 @@ class Photo : NSManagedObject {
         let entity = NSEntityDescription.entityForName("Photo", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
-        imageData = dictionary[InitKeys.imageData] as? NSData
+//        imageData = dictionary[InitKeys.imageData] as? NSData
         pin = dictionary[InitKeys.pin] as? Pin
         imageUrl = dictionary[InitKeys.imageUrl] as? String
         title = dictionary[InitKeys.title] as? String
@@ -84,9 +80,9 @@ class Photo : NSManagedObject {
     /* 
     @brief Acquire the UIImage for this Photo object.
     @discussion The image is retrieved using the following sequence:
-        If the image has not previously been downloaded, then download the image from self.imageUrl.
-        else build the image from NSData stored in Core Data
-        TODO - finish description when logic is updated for caching and file system storage
+        1. cache
+        2. filesystem
+        3. download the image from self.imageUrl.
     @param completion (in)
     @param success (out) - true if image successfully acquired, else false.
     @param error (out) - NSError object if an error occurred, else nil.
@@ -125,8 +121,8 @@ class Photo : NSManagedObject {
                 if success {
                     if let theImage = theImage {
                         // retrieve the image data
-                        let imageData = UIImageJPEGRepresentation(theImage, 1)
-                        
+//                        let imageData = UIImageJPEGRepresentation(theImage, 1)
+//
 //                        // save the image data to the Photo property (Will be captured in Core Data on next saveContext)
 //                        self.imageData = imageData
                         
@@ -170,7 +166,7 @@ class Photo : NSManagedObject {
             
             // create a new Photo instance
             var dict = [String: AnyObject]()
-            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
+//            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
             dict[Photo.InitKeys.pin] = forPin
             
             // set the image metaData obtained from the flickr api for this photo
