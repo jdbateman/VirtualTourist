@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 John Bateman. All rights reserved.
 //
 
-// TODO: When a photo is removed from an album, the PhotoAlbumViewController explicitly deletes the underlying file in the Documents directory.
+// TODO: [Done] When a photo is removed from an album, the PhotoAlbumViewController explicitly deletes the underlying file in the Documents directory.
 // Better though would be the following:
 // TODO: Udacious - Underlying files are automatically deleted when a Photo object is removed from Core Data, using code in the Photo managed object.
 
@@ -217,13 +217,26 @@ class Photo : NSManagedObject {
     }
     
     /*
+    @brief This method is called by Core Data when this Photo object is about to be deleted from Core Data. Here any data associated with the Photo object are removed from the cache and file system.
+    */
+    override func prepareForDeletion() {
+        self.removeFromCache()
+        self.deleteFileFromFileSystem()
+    }
+    
+    /*
     @brief Remove this Photo object from Core data.
     @discussion If the photo contains a file containing image data on the filesystem that file is also deleted. Any cached image data associated with the photo is also deleted.
     @param bSaveContext (in) - true call saveContext on the Core Data shared instance. false is a noop.
     */
     func deletePhoto(bSaveContext: Bool) {
-        self.removeFromCache()
-        self.deleteFileFromFileSystem()
+        
+        // Note: Commented out below because cache and filesystem cleanup are now handled automatically in prepareForDeletion().
+        // clean up data in filesystem and in cache
+//        self.removeFromCache()
+//        self.deleteFileFromFileSystem()
+        
+        // delete from Core Data
         Photo.sharedContext.deleteObject(self)
         if bSaveContext {
             CoreDataStackManager.sharedInstance().saveContext()
@@ -302,6 +315,7 @@ extension Photo {
     func removeFromCache() {
         if let url = self.imageUrl {
             NSCache.sharedInstance.removeObjectForKey(url)
+            println("removed \(url) from cache")
         }
     }
     
