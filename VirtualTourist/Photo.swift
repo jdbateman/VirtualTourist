@@ -25,7 +25,7 @@ class Photo : NSManagedObject {
     static let entityName = "Photo"
     
     /* JPEG image data for the Photo. */
-//    /*@NSManaged*/ var imageData: NSData?   // TODO: remove @NSManaged and remove from xcdatamodeld
+//    /*@NSManaged*/ var imageData: NSData? // TODO: cleanup imageData references in this file
     
     /* Pin object to which the image belongs */
     @NSManaged var pin: Pin?

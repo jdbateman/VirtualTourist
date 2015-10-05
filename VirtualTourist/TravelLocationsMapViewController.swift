@@ -169,18 +169,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         // Change the VC state to AddPin mode.
         state = .AddPin
     }
-    
-
-//    // MARK: - Segues
-//// TODO
-//    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-//        if segue.identifier == "showDetail" {
-////            if let indexPath = self.tableView.indexPathForSelectedRow() {
-////            let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
-////            (segue.destinationViewController as! DetailViewController).detailItem = object
-////            }
-//        }
-//    }
 
     
     // MARK: MKMapViewDelegate
@@ -356,12 +344,15 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             
             switch state {
             case .AddPin:
-                // get coordinates of touch in view
-                let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
-                println("viewPoint = \(viewPoint)")  // TODO: remove
                 
-                // Create a new Pin instance, display on the map, and save to the context.
-                createPinAtPoint(viewPoint)
+                // Note: moved to .Ended state
+                
+//                // get coordinates of touch in view
+                let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
+                println(".AddPin: viewPoint = \(viewPoint)")  // TODO: remove
+//                
+//                // Create a new Pin instance, display on the map, and save to the context.
+//                createPinAtPoint(viewPoint)
                 
             case .Edit:
                 return
@@ -400,6 +391,13 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
 //            //Assign the pin to the droppedPin
 //            droppedPin.pin = pin
 //            //Save pin and fetch images...
+            
+            // get coordinates of touch in view
+            let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
+            println(".Ended: viewPoint = \(viewPoint)")  // TODO: remove
+            
+            // Create a new Pin instance, display on the map, and save to the context.
+            createPinAtPoint(viewPoint)
         }
     }
     
