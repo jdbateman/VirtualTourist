@@ -6,6 +6,10 @@
 //  Copyright (c) 2015 John Bateman. All rights reserved.
 //
 
+// TODO: When a photo is removed from an album, the PhotoAlbumViewController explicitly deletes the underlying file in the Documents directory.
+// Better though would be the following:
+// TODO: Udacious - Underlying files are automatically deleted when a Photo object is removed from Core Data, using code in the Photo managed object.
+
 import Foundation
 import CoreData
 import UIKit
@@ -59,6 +63,23 @@ class Photo : NSManagedObject {
         title = dictionary[InitKeys.title] as? String
         id = dictionary[InitKeys.id] as? String
     }
+    
+    // TODO - test that this delete works on deinit.
+    // Remove the file associated with this object's image if it exists on the filesystem.
+//    deinit {
+//        if let id = self.id {  // TODO: this assignment and test fails
+//            let path = pathForImageFileWith(id)
+//            if let path = path {
+//                if NSFileManager.defaultManager().fileExistsAtPath(path) {
+//                    var error:NSErrorPointer = NSErrorPointer()
+//                    NSFileManager.defaultManager().removeItemAtPath(path, error: error)
+//                    if error != nil {
+//                        println(error.debugDescription)
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     /* 
     @brief Acquire the UIImage for this Photo object.
@@ -137,6 +158,85 @@ class Photo : NSManagedObject {
             }
         }
     }
+    
+    /*
+    @brief Initialization helper: Create a Photo instance initialized to the contents of the imageMetadata parameter for every object in the imageMetadata dicstionary.
+    @discussion Since Photo objects are NSManagedObjects they are persisted to Core Data. The Photo is associate with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
+    @param imageMetadata (in) - a dictionary containing multiple image metadata dictionaries. Each miage metadata dictionary contains an image title, id (used for local filename), and image url.
+    @param forPin (in) - the Pin object to associate with the photo.
+    */
+    class func initPhotosFrom(imageMetadata: [[String: AnyObject?]]?, forPin: Pin?) {
+        dispatch_async(dispatch_get_main_queue()) {
+            
+            // create a new Photo instance
+            var dict = [String: AnyObject]()
+            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
+            dict[Photo.InitKeys.pin] = forPin
+            
+            // set the image metaData obtained from the flickr api for this photo
+            if let imageMetadata = imageMetadata {
+                for metadataDictionary in imageMetadata {
+                    // image url
+                    if let url = metadataDictionary[Flickr.FlickrImageMetadataKeys.URL] as? String {
+                        dict[Photo.InitKeys.imageUrl] = url
+                    } else {
+                        dict[Photo.InitKeys.imageUrl] = nil
+                    }
+                    
+                    // image title
+                    if let title = metadataDictionary[Flickr.FlickrImageMetadataKeys.TITLE] as? String {
+                        dict[Photo.InitKeys.title] = title
+                    } else {
+                        dict[Photo.InitKeys.title] = nil
+                    }
+                    
+                    // image's flickr ID
+                    if let id = metadataDictionary[Flickr.FlickrImageMetadataKeys.ID] as? String {
+                        dict[Photo.InitKeys.id] = id
+                    } else {
+                        dict[Photo.InitKeys.id] = nil
+                    }
+                    
+                    // Add the Photo to the Core Data shared context
+                    var photo = Photo(dictionary:dict, context: Photo.sharedContext)
+                    
+                    // Acquire the image data for this Photo object.
+                    photo.getImage( { success, error, image in
+                        if success {
+                            println("successfully downloaded image \(photo.id): \(photo.title)")
+                        } else {
+                            println("error acquiring image \(photo.id): \(photo.title)")
+                        }
+                    })
+                }
+            }
+            
+            // Persist all the photos we added to the Core Data shared context
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
+    }
+    
+    /*
+    @brief Remove this Photo object from Core data.
+    @discussion If the photo contains a file containing image data on the filesystem that file is also deleted. Any cached image data associated with the photo is also deleted.
+    @param bSaveContext (in) - true call saveContext on the Core Data shared instance. false is a noop.
+    */
+    func deletePhoto(bSaveContext: Bool) {
+        self.removeFromCache()
+        self.deleteFileFromFileSystem()
+        Photo.sharedContext.deleteObject(self)
+        if bSaveContext {
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
+    }
+    
+    
+    // MARK: - Core Data
+    
+    /* core data managed object context */
+    static var sharedContext: NSManagedObjectContext = {
+        return CoreDataStackManager.sharedInstance().managedObjectContext!
+    }()
 }
 
 /* Image management helper functions */
@@ -177,7 +277,35 @@ extension Photo {
         return fileURL.path
     }
     
-    // Download the image identified by imageUrlString in a background thread, convert it to a UIImage object, and return the object.
+    
+    /* 
+    @brief Delete the file in the Documents directory associated with this photo.
+    @discussion Uses the id property as the base of the filename.
+    */
+    func deleteFileFromFileSystem() {
+        if let id = self.id {
+            let path = pathForImageFileWith(id)
+            if let path = path {
+                if NSFileManager.defaultManager().fileExistsAtPath(path) {
+                    var error:NSErrorPointer = NSErrorPointer()
+                    NSFileManager.defaultManager().removeItemAtPath(path, error: error)
+                    println("deleted file at \(path)")
+                    if error != nil {
+                        println(error.debugDescription)
+                    }
+                }
+            }
+        }
+    }
+    
+    /* Delete any cached image data associated with this Photo object. */
+    func removeFromCache() {
+        if let url = self.imageUrl {
+            NSCache.sharedInstance.removeObjectForKey(url)
+        }
+    }
+    
+    /* Download the image identified by imageUrlString in a background thread, convert it to a UIImage object, and return the object. */
     func dowloadImageFrom(imageUrlString: String?, completion: (success: Bool, error: NSError?, image: UIImage?) -> Void) {
         
         let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)

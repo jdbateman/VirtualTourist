@@ -88,20 +88,8 @@ class Flickr {
                             pageNum = 1
                         }
                         
-                        //var test: Int32 = 7
-                        
-                        // generate a random page number in the limit
-                        //let randomPage = Int(arc4random_uniform(UInt32(pageLimit))) + 1
-                        
                         // Search a particular page of results.
                         self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum) { success, error, arrayOfDicts in
-//  worked:                       self.xFoo(methodArguments, pageNumber: pageNum) { success, error in
-//                        self.xFoo(methodArguments, pageNum) { success, error, arrayOfDicts in
-//                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum, completion: {(success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void in
-//                            
-//                        self.searchFlickrForImageMetadataByPageWith(methodArguments, pageNumber: pageNum) {
-//                            success, error, arrayOfDicts in
-//                            var arrayOfDicts = [["key1":5], ["key2":4]] as [[String: AnyObject?]]?
                             completionHandler(success: success, error: error, arrayOfDictionaries: arrayOfDicts, nextPage: Int32(++pageNum))
                         }
                     } else {
@@ -132,15 +120,7 @@ class Flickr {
     */
 
     func searchFlickrForImageMetadataByPageWith(methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void) {
-
     
-// worked:    func xFoo (methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?) -> Void) {
-
-    //searchFlickrForImageMetadataByPageWith
-//    func xFoo (methodArguments: [String : AnyObject], pageNumber: Int, completionHandler: (success: Bool, error: NSError?, arrayOfDicts: [[String: AnyObject?]]?) -> Void) {
-
-    
-        
         /* Add the page to the method's arguments */
         var withPageDictionary = methodArguments
         withPageDictionary["page"] = pageNumber

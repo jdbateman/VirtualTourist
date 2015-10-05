@@ -15,6 +15,7 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 */
 
 // TODO: properly define NSError strings as in CoreDataStackManager.swift. Update NSError objects in the app.
+
 // Question: Why does the New Collection button take so long to enable?
 // Question: suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
 // Question: is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
@@ -88,10 +89,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             // enable the New Collection button
             newCollectionButton!.enabled = true
             
+            // Note: I removed the following resetPhotos() call, now that Photo.initPhotosFrom:forPin: is called when the pin is dropped.
+            // If the count is zero, the user can select the New Collection button to fetch more images.
+            
             // Fetch images from flickr if there are none associated with the currently selected pin.
-            if pin.photos.count == 0 {
-                initializePhotos()
-            }
+//            if pin.photos.count == 0 {
+//                resetPhotos()
+//            }
         }
     }
     
@@ -103,7 +107,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     @brief Search flickr for images by gps coordinates. Create a Photo object for each set of image meta returned. Insert each into the shared Core Data context.
     @discussion The data is returned from the Flickr object as an array of dictionaries, where each dictionary contains metadata for a particular image. The data does not contain the actual image data, but instead a url identifying the location of the image.
     */
-    func initializePhotos() {
+    func resetPhotos() {
         self.startActivityIndicator()
         
         // disable the New Collection button until the images are downloaded from flickr.
@@ -113,8 +117,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             self.flickr.searchPhotosBy2DCoordinates(pin) {
                 success, error, imageMetadata in
                 if success == true {
-                    // Persist each photo returned by the search as a new Photo instance, save it in the VC's flickrPhotos collection, & associate it with the view controller's current pin using the inverse relationship (by setting the photo's pin property to the VC's current pin).
-                    self.saveImageMetadataAsPhotos(imageMetadata)
+                    // Create a Photo instance for each image metadata dictionary in imageMetadata. Associate each Photo with the pin.
+                    Photo.initPhotosFrom(imageMetadata, forPin: pin)
             
                     // halt the activity indicator
                     self.stopActivityIndicator()
@@ -151,13 +155,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // remove all photos associated with this pin in core data store
         if let pin = pin {
             for photo in pin.photos {
-                self.sharedContext.deleteObject(photo)
+                photo.deletePhoto(false)
             }
             CoreDataStackManager.sharedInstance().saveContext()
         }
         
         // fetch a new set of images
-        initializePhotos()
+        resetPhotos()
     }
     
     
@@ -199,8 +203,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         // remove the Photo object from the core data store.
         let photo = self.fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
-        sharedContext.deleteObject(photo)
-        CoreDataStackManager.sharedInstance().saveContext()
+        photo.deletePhoto(true)
         
         // force the cells to update now that the image has been downloaded
         self.collectionView.reloadData()
@@ -214,57 +217,20 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         return CoreDataStackManager.sharedInstance().managedObjectContext!
     }()
     
-    /*
-    @brief Persist each imageMetaData dictionary as a Photo object in Core Data.
-    @discussion This function sets the Photo's inverse relationship to it's Pin, and saves the new Photo to the view controller's flickrPhotos collection.
-    */
-    func saveImageMetadataAsPhotos(imageMetadata: [[String: AnyObject?]]?) {
-        dispatch_async(dispatch_get_main_queue()) {
-
-            // create a new Photo instance
-            var dict = [String: AnyObject]()
-            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
-            dict[Photo.InitKeys.pin] = self.pin
-            
-            // set the image metaData obtained from the flickr api for this photo
-            if let imageMetadata = imageMetadata {
-                for metadataDictionary in imageMetadata {
-                    // image url
-                    if let url = metadataDictionary[Flickr.FlickrImageMetadataKeys.URL] as? String {
-                        dict[Photo.InitKeys.imageUrl] = url
-                    } else {
-                       dict[Photo.InitKeys.imageUrl] = nil
-                    }
-                    
-                    // image title
-                    if let title = metadataDictionary[Flickr.FlickrImageMetadataKeys.TITLE] as? String {
-                        dict[Photo.InitKeys.title] = title
-                    } else {
-                        dict[Photo.InitKeys.title] = nil
-                    }
-                    
-                    // image's flickr ID
-                    if let id = metadataDictionary[Flickr.FlickrImageMetadataKeys.ID] as? String {
-                        dict[Photo.InitKeys.id] = id
-                    } else {
-                        dict[Photo.InitKeys.id] = nil
-                    }
-                    
-                    // Add the Photo to the Core Data shared context
-                    var photo = Photo(dictionary:dict, context: self.sharedContext)
-                }
-            }
-
-            // Persist all the photos we added to the Core Data shared context
-            CoreDataStackManager.sharedInstance().saveContext()
-        }
-    }
-    
-    /* Remove the Photo object from the Core data store */
-    func deletePhoto(photo: Photo) {
-        self.sharedContext.deleteObject(photo)
-        CoreDataStackManager.sharedInstance().saveContext()
-    }
+//    /* 
+//    @brief Remove the Photo object from the Core data store.
+//    @discussion If the photo contains a file containing image data on the filesystem that file is also deleted. Any cached image data associated with the photo is also deleted.
+//    @param photo (in) - The Photo object to delete.
+//    @param bSaveContext (in) - true call saveContext on the Core Data shared instance. false is a noop.
+//    */
+//    func deletePhoto(photo: Photo, bSaveContext: Bool) {
+//        photo.removeFromCache()
+//        photo.deleteFileFromFileSystem()
+//        self.sharedContext.deleteObject(photo)
+//        if bSaveContext {
+//            CoreDataStackManager.sharedInstance().saveContext()
+//        }
+//    }
     
     
     // MARK: - Fetched results controller

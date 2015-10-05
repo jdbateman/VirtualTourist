@@ -11,6 +11,8 @@ The TravelLocationsMapViewController class is the initial view controller. It di
 
 @author John Bateman. Created on 9/15/15
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
+
+Acknowledgements: Thanks to matt for this SO post on draggable mapview annotations:  http://stackoverflow.com/questions/29776853/ios-swift-mapkit-making-an-annotation-draggable-by-the-user
 */
 
 import UIKit
@@ -37,6 +39,9 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* To detect long taps on the MKMapView. */
     var longPressRecognizer: UILongPressGestureRecognizer? = nil
+    
+    /* Flickr api wrapper object */
+    let flickr = Flickr()
     
     /* core data managed object context */
     lazy var sharedContext: NSManagedObjectContext = {
@@ -166,98 +171,17 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     }
     
 
-    // MARK: - Segues
-// TODO
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        if segue.identifier == "showDetail" {
-//            if let indexPath = self.tableView.indexPathForSelectedRow() {
-//            let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
-//            (segue.destinationViewController as! DetailViewController).detailItem = object
-//            }
-        }
-    }
-/*
-    // MARK: - Fetched results controller
-    
-    lazy var fetchedResultsController: NSFetchedResultsController = {
-        // Create the fetch request
-        let fetchRequest = NSFetchRequest(entityName: Pin.entityName)
-        
-        // Add a sort descriptors to enforce a sort order on the results.
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
-        
-        // Create the Fetched Results Controller
-        let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext:
-            self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
-        
-        // Return the fetched results controller. It will be the value of the lazy variable
-        return fetchedResultsController
-    } ()
-    
-    /* Perform fetch to initialize the fetchedResultsController. */
-    func initFetchedResultsController() {
-        var error: NSError? = nil
-        
-        fetchedResultsController.performFetch(&error)
-        
-        if let error = error {
-            println("Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
-            // TODO: Replace this implementation with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate.
-            abort()
-        }
-    }
+//    // MARK: - Segues
+//// TODO
+//    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+//        if segue.identifier == "showDetail" {
+////            if let indexPath = self.tableView.indexPathForSelectedRow() {
+////            let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
+////            (segue.destinationViewController as! DetailViewController).detailItem = object
+////            }
+//        }
+//    }
 
-    func controllerWillChangeContent(controller: NSFetchedResultsController) {
-//        self.tableView.beginUpdates()
-    }
-
-    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
-        switch type {
-            case .Insert:
-            println("insert")
-//                self.tableView.insertSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Fade)
-            case .Delete:
-            println("delete")
-//                self.tableView.deleteSections(NSIndexSet(index: sectionIndex), withRowAnimation: .Fade)
-            default:
-                return
-        }
-    }
-
-    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
-        switch type {
-            case .Insert:
-            println("insert")
-//                tableView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
-            case .Delete:
-            println("delete")
-//                tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
-            case .Update:
-            println("update")
-//                self.configureCell(tableView.cellForRowAtIndexPath(indexPath!)!, atIndexPath: indexPath!)
-            case .Move:
-            println("move")
-//                tableView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
-//                tableView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
-            default:
-                return
-        }
-    }
-
-    func controllerDidChangeContent(controller: NSFetchedResultsController) {
-//        self.tableView.endUpdates()
-    }
-
-    /*
-     // Implementing the above methods to update the table view in response to individual changes may have performance implications if a large number of changes are made simultaneously. If this proves to be an issue, you can instead just implement controllerDidChangeContent: which notifies the delegate that all section and object changes have been processed.
-     
-     func controllerDidChangeContent(controller: NSFetchedResultsController) {
-         // In the simplest, most efficient, case, reload the table view.
-         self.tableView.reloadData()
-     }
-     */
-*/
     
     // MARK: MKMapViewDelegate
     
@@ -274,6 +198,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             pinView!.pinColor = .Purple
             pinView!.rightCalloutAccessoryView = UIButton.buttonWithType(.DetailDisclosure) as! UIButton  // DetailDisclosure, InfoLight, InfoDark, ContactAdd
             pinView!.animatesDrop = true
+            pinView!.draggable = true //TODO
         }
         else {
             pinView!.annotation = annotation
@@ -285,6 +210,8 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     /* Handler for touch on a pin. */
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
         println("pin selected")
+        
+        view.draggable = true //TODO
         
         // get the annotation for the annotation view
         let annotation: MKAnnotation = view.annotation
@@ -311,7 +238,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         default:
             return
         }
-        
     }
     
     //TODO - remove...
@@ -436,6 +362,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                 
                 // Create a new Pin instance, display on the map, and save to the context.
                 createPinAtPoint(viewPoint)
+                
             case .Edit:
                 return
             default:
@@ -446,11 +373,33 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         if(recognizer.state == UIGestureRecognizerState.Changed) {
             // Called while the finger is still down, if position moves by amount > tolerance
             println("UIGestureRecognizerStateChanged")
+            
+            // TODO - Udacious
+            //Check to make sure the pin has dropped
+//            if droppedPin != nil {
+//                
+//                //Get the coordinates from the map where we dragged over
+//                let tapPoint: CGPoint = sender.locationInView(mapView)
+//                let touchMapCoordinate: CLLocationCoordinate2D = mapView.convertPoint(tapPoint, toCoordinateFromView: mapView)
+//                
+//                //Update the pin view
+//                dispatch_async(dispatch_get_main_queue(), {
+//                    self.droppedPin.coordinate = touchMapCoordinate
+//                })
+//            }
         }
         
+        // TODO - Udacious
         if(recognizer.state == UIGestureRecognizerState.Ended) {
-            // gesture has finished (finger was lifted)
-            println("UIGestureRecognizerStateEnded")
+//            // gesture has finished (finger was lifted)
+//            println("UIGestureRecognizerStateEnded")
+//            
+//            //Create the Pin entity
+//            let pin = Pin(coords: droppedPin.coordinate, context: sharedContext)
+//            
+//            //Assign the pin to the droppedPin
+//            droppedPin.pin = pin
+//            //Save pin and fetch images...
         }
     }
     
@@ -526,11 +475,8 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             //println("created a new MapRegion: \(self.mapRegion)")
         }
         
-        
         // persist the controller's mapRegion property
         CoreDataStackManager.sharedInstance().saveContext()
-        
-        //println("persisted self.mapRegion: \(self.mapRegion!.latitude, self.mapRegion!.longitude, self.mapRegion!.spanLatitude, self.mapRegion!.spanLongitude)")
     }
     
     /* Delete any existing MapRegion values in the Core Data store. */
@@ -559,10 +505,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     */
     func createPinAtPoint(viewPoint: CGPoint) {
         
-        // get coordinates of touch in view
-//        let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
-//        println("viewPoint = \(viewPoint)")  // TODO: remove
-        
         // get coordinates of touch in the map's gps coordinate space.
         let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
         println("mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
@@ -575,6 +517,15 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         // TODO: persist the pin
         savePin()
+        
+        // TODO: Udacious - As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
+        self.flickr.searchPhotosBy2DCoordinates(pin) {
+            success, error, imageMetadata in
+            if success == true {
+                // Create a Photo instance for each image metadata dictionary in imageMetadata. Associate each Photo with the pin.
+                Photo.initPhotosFrom(imageMetadata, forPin: pin)
+            }
+        }
     }
     
     /* Create a new Pin at the specified 2D map coordinate and return it. */
@@ -636,128 +587,20 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             self.mapView.setNeedsDisplay()
         }
     }
-}
-
-
-/*
-var fetchedResultsController: NSFetchedResultsController {
-if _fetchedResultsController != nil {
-return _fetchedResultsController!
-}
-
-let fetchRequest = NSFetchRequest()
-// Edit the entity name as appropriate.
-let entity = NSEntityDescription.entityForName("Event", inManagedObjectContext: self.sharedContext)
-fetchRequest.entity = entity
-
-// Set the batch size to a suitable number.
-fetchRequest.fetchBatchSize = 20
-
-// Edit the sort key as appropriate.
-let sortDescriptor = NSSortDescriptor(key: "timeStamp", ascending: false)
-let sortDescriptors = [sortDescriptor]
-
-fetchRequest.sortDescriptors = [sortDescriptor]
-
-// Edit the section name key path and cache name if appropriate.
-// nil for section name key path means "no sections".
-let aFetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: "Master")
-aFetchedResultsController.delegate = self
-_fetchedResultsController = aFetchedResultsController
-
-var error: NSError? = nil
-if !_fetchedResultsController!.performFetch(&error) {
-// Replace this implementation with code to handle the error appropriately.
-// abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-//println("Unresolved error \(error), \(error.userInfo)")
-abort()
-}
-
-return _fetchedResultsController!
-}
-var _fetchedResultsController: NSFetchedResultsController? = nil
-*/
-
-//    func insertNewObject(sender: AnyObject) {
-//        let context = self.fetchedResultsController.managedObjectContext
-//        let entity = self.fetchedResultsController.fetchRequest.entity!
-//        let newManagedObject = NSEntityDescription.insertNewObjectForEntityForName(entity.name!, inManagedObjectContext: context) as! NSManagedObject
-//
-//        // If appropriate, configure the new managed object.
-//        // Normally you should use accessor methods, but using KVC here avoids the need to add a custom class to the template.
-//        newManagedObject.setValue(NSDate(), forKey: "timeStamp")
-//
-//        // Save the context.
-//        var error: NSError? = nil
-//        if !context.save(&error) {
-//            // Replace this implementation with code to handle the error appropriately.
-//            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-//            //println("Unresolved error \(error), \(error.userInfo)")
-//            abort()
+    
+//    /* handle changes to drag state of an annotation */
+//    func mapView(mapView: MKMapView!, annotationView view: MKAnnotationView!, didChangeDragState newState: MKAnnotationViewDragState, fromOldState oldState: MKAnnotationViewDragState) {
+////        switch (newState) {
+////        case .Starting:
+////            view.dragState = .Dragging
+////        case .Ending, .Canceling:
+////            view.dragState = .None
+////        default: break
+////        }
+//        
+//        if newState == MKAnnotationViewDragState.Ending {
+//            let annotation = view.annotation
+//            println("The annotation is located at: \(annotation.coordinate.latitude),\(annotation.coordinate.longitude)")
 //        }
 //    }
-
-///* Create a new Pin and save the context. */
-//func insertNewObject(sender: AnyObject) {
-//    let pin = Pin(context: sharedContext)
-//    
-//    pin.timeStamp = NSDate()
-//    
-//    CoreDataStackManager.sharedInstance().saveContext()
-//}
-
-/*
-// MARK: - Table View
-
-override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-return self.fetchedResultsController.sections?.count ?? 0
 }
-
-override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
-return sectionInfo.numberOfObjects
-}
-
-override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-let cell = tableView.dequeueReusableCellWithIdentifier("Cell", forIndexPath: indexPath) as! UITableViewCell
-self.configureCell(cell, atIndexPath: indexPath)
-return cell
-}
-
-override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-// Return false if you do not want the specified item to be editable.
-return true
-}
-
-override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-if editingStyle == .Delete {
-let context = self.fetchedResultsController.managedObjectContext
-context.deleteObject(self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject)
-
-var error: NSError? = nil
-if !context.save(&error) {
-// Replace this implementation with code to handle the error appropriately.
-// abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-//println("Unresolved error \(error), \(error.userInfo)")
-abort()
-}
-}
-}
-
-func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
-let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
-cell.textLabel!.text = object.valueForKey("timeStamp")!.description
-}
-*/
-
-// DEBUG:
-//println("\nonDoneButtonTap(): after animation -------------------------------------")
-//println("view frame final (y, height) = \(self.view.frame.origin.y), \(self.view.frame.size.height)")
-//println("mapContainerView frame final (y, height) = \(self.mapContainerView.frame.origin.y), \(self.mapContainerView.frame.size.height)")
-//println("mapView frame final (y, height) = \(self.mapView.frame.origin.y), \(self.mapView.frame.size.height)")
-//println("hintContainerView frame final (y, height) = \(self.hintContainerView.frame.origin.y), \(self.hintContainerView.frame.size.height)")
-
-//        dispatch_async(dispatch_get_main_queue()) {
-//            self.mapView.setNeedsDisplay()
-//            self.view.setNeedsDisplay()
-//        }
