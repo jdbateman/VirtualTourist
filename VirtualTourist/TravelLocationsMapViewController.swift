@@ -43,9 +43,16 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     /* Flickr api wrapper object */
     let flickr = Flickr()
     
-    /* core data managed object context */
+    /* The main core data managed object context. This context will be persisted. */
     lazy var sharedContext: NSManagedObjectContext = {
         return CoreDataStackManager.sharedInstance().managedObjectContext!
+    }()
+    
+    /* A core data managed object context that will not be persisted. */
+    lazy var scratchContext: NSManagedObjectContext = {
+        var context = NSManagedObjectContext()
+        context.persistentStoreCoordinator = CoreDataStackManager.sharedInstance().persistentStoreCoordinator
+        return context
     }()
     
     /* The pin instance that is saved to Core Data. */
@@ -377,10 +384,22 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                 // Create a new Pin instance, display on the map, and save to the context.
                 self.ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
                 // TODO: testing. moved to .Ended
-//                if let pin = self.ephemeralPin {
-//                    self.ephemeralAnnotations.append(pin.annotation)
-//                    println("added ephemeral annotation.")
+                if let pin = self.ephemeralPin {
+                    self.ephemeralAnnotations.append(pin.annotation)
+                    println("added ephemeral annotation.")
 //                }
+                
+//                if let pin = self.ephemeralPin {
+                    // Add the annotation to a local array of annotations.
+                    var annotations = [MKPointAnnotation]()
+                    annotations.append(pin.annotation)
+                    
+                    // Add the annotation to the map.
+                    self.mapView.addAnnotations(annotations)
+
+                    // Tell the OS that the mapView needs to be refreshed.
+                    self.mapView.setNeedsDisplay()
+                }
                 
                 println(".Began ephemeral annotation count = \(self.ephemeralAnnotations.count)")
                 println(".Began mapView annotation count = \(self.mapView.annotations.count)")
@@ -486,7 +505,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             
             // Create a new Pin instance, display on the map, and save to the context.
             let viewPoint1: CGPoint = recognizer.locationInView(self.mapView)
-//TODO - debug            createPinAtPoint(viewPoint1, bPersistPin: true)
+            createPinAtPoint(viewPoint1, bPersistPin: true)
             
             return
                 
@@ -714,17 +733,24 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
         println("CreatePinAtCoordinate mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
         
+        var context: NSManagedObjectContext
+        if bPersistPin {
+            context = sharedContext
+        } else {
+            context = scratchContext
+        }
+        
         // Create a pin (annotation) based on the calculated gps coordinates.
-        let pin: Pin = createPinAtCoordinate(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
+        let pin: Pin = createPinAtCoordinate(latitude: mapPoint.latitude, longitude: mapPoint.longitude, context: context)
         
         if bPersistPin {
+            
             // Display the pin on the map.
-//TODO - debug            showPinOnMap(pin)
+            showPinOnMap(pin)
 
             // TODO: persist the pin
 //TODO - debug             savePin()
-/* 
-//TODO - debug
+
             // TODO: Udacious - As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
             self.flickr.searchPhotosBy2DCoordinates(pin) {
                 success, error, imageMetadata in
@@ -733,18 +759,23 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                     Photo.initPhotosFrom(imageMetadata, forPin: pin)
                 }
             }
-*/
+
         }
         
         return pin
     }
     
-    /* Create a new Pin at the specified 2D map coordinate and return it. */
-    func createPinAtCoordinate(#latitude: Double, longitude: Double) -> Pin {
+    /* 
+    @brief Create a new Pin in the specified Core Data context at the specified 2D map coordinate and return it.
+    @param latitude (in) map coordinate
+    @param longitude (in) map coordinate
+    @param context (in) Core Data context to use when instantiating the Pin object.
+    */
+    func createPinAtCoordinate(#latitude: Double, longitude: Double, context: NSManagedObjectContext) -> Pin {
         var dict = [String: AnyObject]()
         dict[Pin.Keys.latitude] = latitude
         dict[Pin.Keys.longitude] = longitude
-        let pin = Pin(dictionary: dict, context: sharedContext)
+        let pin = Pin(dictionary: dict, context: context)
         return pin
     }
     
