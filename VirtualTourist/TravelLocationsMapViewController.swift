@@ -367,29 +367,17 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             switch state {
             case .AddPin:
                 
-                // Create a new Pin instance, display on the map, and save to the context.
-//                previousEphemeralPin = ephemeralPin
-//                if let ePin = ephemeralPin {
-//                    ephemeralAnnotations.append(ePin.annotation)
-//                    println("ephemeralAnnotations += 1 \(ePin.annotation)")
-//                }
-//                ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
-                
                 // get coordinates of touch in view
                 let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
                 println(".AddPin: viewPoint = \(viewPoint)")
                 
-// Note:  OK, this pin is the one that ends up being the extra pin at the end. Figure out how to show the annotation on the map while dragging, without having this pin arround on the touch up.
-                
-                // Create a new Pin instance, display on the map, and save to the context.
+                // Create a new Pin instance, display on the map, and save to a scratch context.
                 self.ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
-                // TODO: testing. moved to .Ended
+
                 if let pin = self.ephemeralPin {
                     self.ephemeralAnnotations.append(pin.annotation)
                     println("added ephemeral annotation.")
-//                }
-                
-//                if let pin = self.ephemeralPin {
+
                     // Add the annotation to a local array of annotations.
                     var annotations = [MKPointAnnotation]()
                     annotations.append(pin.annotation)
@@ -414,101 +402,77 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         if(recognizer.state == UIGestureRecognizerState.Changed) {
             // Called while the finger is still down, if position moves by amount > tolerance
             
-//            println("UIGestureRecognizerStateChanged")
-            
-            // remove previous ephemeral pin
-//            dispatch_async(dispatch_get_main_queue()) {
-//                if let pin = self.ephemeralPin {
-//                    self.mapView.removeAnnotation(pin.annotation)
-//                    self.mapView.setNeedsDisplay()
-//                    println("removed ephemeral pin \(pin)")
-//                }
-//            }
-            
-            // TODO test only - nuke all annotations
-            // TODO: idea - set property on annotation and filter on it in the line below to only nuke all ephemeral pins.
-//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
-//            mapView.removeAnnotations( annotationsToRemove )
-            
-            // remove all ephemeral Annotations from the mapView
-            // let annotationsToRemove = ephemeralAnnotations
-            //self.mapView.removeAnnotations( ephemeralAnnotations )//  - darn. this doesn't appear to work. maybe the annotations i'm adding from the pin's coordinates don't match the coordinates in the mapview annotations? try filtering on mapview annotations removing anything not in our ephemeralAnnotations array, then pass the remaining collection to removeAnnotations(). That way I could see if matches occurr
-            //self.ephemeralAnnotations.removeAll(keepCapacity: true)
-            
-            let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
-            println(".Changed: viewPoint = \(viewPoint)")
-            
-            // TODO - Udacious
-            //Check to make sure the pin has dropped
-//            if droppedPin != nil {
-//                
-//                //Get the coordinates from the map where we dragged over
-                //let tapPoint: CGPoint = recognizer.locationInView(mapView)
+            switch state {
+            case .AddPin:
+                
+                let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
+                println(".Changed: viewPoint = \(viewPoint)")
+                
                 let mapCoordinate2D: CLLocationCoordinate2D = mapView.convertPoint(viewPoint, toCoordinateFromView: mapView)
-
+                
                 // remove the ephemeral annotations
                 self.removeEphemeralAnnotationsFromMapView()
-            
+                
                 //Update the pin view
-//                dispatch_async(dispatch_get_main_queue(), {
-                    if let pin = self.ephemeralPin {
-                        println("update ephemeral pin coordinates and show \(pin)")
-                        // show new ephemeral pin
-                        pin.coordinate = mapCoordinate2D
-//                        self.showPinOnMap(pin) // not needed to render pin while moved
-                        
-                        
-//                        if let pin = self.ephemeralPin {
-//                            self.ephemeralAnnotations.append(pin.annotation)
-//                            println("added ephemeral annotation.")
-//                        }
+                if let pin = self.ephemeralPin {
+                    println("update ephemeral pin coordinates and show \(pin)")
+                    // show new ephemeral pin
+                    pin.coordinate = mapCoordinate2D
+                    
+                    // Add the annotation to a local array of annotations.
+                    var annotations = [MKPointAnnotation]()
+                    annotations.append(pin.annotation)
+                    
+                    // record the annotation as an ephemeral annotation
+                    self.ephemeralAnnotations.append(pin.annotation)
+                    
+                    // Add the annotation(s) to the map.
+                    self.mapView.addAnnotations(annotations)
+                    
+                    println("mapView.addAnnotations in handleLongPress() .Changed. annotations: \(annotations)")
+                    
+                    // Tell the OS that the mapView needs to be refreshed.
+                    self.mapView.setNeedsDisplay()
+                    
+                    println(".Changed added ephemeral annotation. new count = \(self.ephemeralAnnotations.count)")
+                    println(".Changed added  mapView  annotation. new count = \(self.mapView.annotations.count)")
+                    
+                    println(".Changed debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
+                    println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
+                }
+                
+            case .Edit:
+                return
+                
+            default:
+                return
+            }
+            
 
-                        
-                        
-                        // Add the annotation to a local array of annotations.
-                        var annotations = [MKPointAnnotation]()
-                        annotations.append(pin.annotation)
-                        
-                        // record the annotation as an ephemeral annotation
-                        self.ephemeralAnnotations.append(pin.annotation)
-                        
-                        // Add the annotation(s) to the map.
-                        self.mapView.addAnnotations(annotations)
-                        
-                        println("mapView.addAnnotations in handleLongPress() .Changed. annotations: \(annotations)")
-                        
-                        
-                        // Tell the OS that the mapView needs to be refreshed.
-                        self.mapView.setNeedsDisplay()
-                        
-                        println(".Changed added ephemeral annotation. new count = \(self.ephemeralAnnotations.count)")
-                        println(".Changed added  mapView  annotation. new count = \(self.mapView.annotations.count)")
-                        
-                        println(".Changed debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-                        println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
-                        
-                    }
-//                })
-//            }
         }
         
-        // START HERE
-        // TODO: Somewhere a second pin is being added. Comment out everywhere a pin is being created until I find the spot where the 2nd pin is no longer created.
-        
-        // TODO - Udacious
         if(recognizer.state == UIGestureRecognizerState.Ended) {
             
-            // remove the ephemeral annotations
-            self.removeEphemeralAnnotationsFromMapView()
-            println(".Ended debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-            println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
-            
-            // Create a new Pin instance, display on the map, and save to the context.
-            let viewPoint1: CGPoint = recognizer.locationInView(self.mapView)
-            createPinAtPoint(viewPoint1, bPersistPin: true)
-            
-            return
+            switch state {
                 
+            case .AddPin:
+                // remove the ephemeral annotations
+                self.removeEphemeralAnnotationsFromMapView()
+                println(".Ended debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
+                println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
+                
+                // Create a new Pin instance, display on the map, and save to the context.
+                let viewPoint1: CGPoint = recognizer.locationInView(self.mapView)
+                createPinAtPoint(viewPoint1, bPersistPin: true)
+                
+            case .Edit:
+                return
+                
+            default:
+                return
+            }
+        }
+/*
 // =======================================================================================================
             
 //            // gesture has finished (finger was lifted)
@@ -585,6 +549,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
 //            // Tell the OS that the mapView needs to be refreshed.
             self.mapView.setNeedsDisplay()
         }
+*/
     }
     
     func removeEphemeralAnnotationsFromMapView() {
