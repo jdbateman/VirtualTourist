@@ -44,6 +44,10 @@ class Pin: NSManagedObject {
             let coordinate = CLLocationCoordinate2D(latitude: latitude.doubleValue, longitude: longitude.doubleValue )
             return coordinate
         }
+        set {
+            latitude = newValue.latitude
+            longitude = newValue.longitude
+        }
     }
     
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {

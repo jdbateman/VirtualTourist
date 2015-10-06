@@ -48,6 +48,14 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         return CoreDataStackManager.sharedInstance().managedObjectContext!
     }()
     
+    /* The pin instance that is saved to Core Data. */
+    var persistentPin: Pin?
+    
+    /* A temporary pin used to track and display a pin while it is dragged. */
+    var ephemeralPin: Pin?
+//    var previousEphemeralPin: Pin?
+    var ephemeralAnnotations = [MKAnnotation]()
+    
     override func awakeFromNib() {
         super.awakeFromNib()
     }
@@ -113,6 +121,10 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* The edit button was selected. Modify UI and state to put the controller in edit mode. */
     func onEditButtonTap() {
+        // TODO - debug: remove
+        // Tell the OS that the mapView needs to be refreshed.
+        self.mapView.setNeedsDisplay()
+        
         // Dispay "Tap Pins to Delete" label. Animate in from bottom.
         hintContainerView.hidden = false
         //self.hintContainerView.alpha = 0.0
@@ -185,8 +197,8 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             pinView!.canShowCallout = false
             pinView!.pinColor = .Purple
             pinView!.rightCalloutAccessoryView = UIButton.buttonWithType(.DetailDisclosure) as! UIButton  // DetailDisclosure, InfoLight, InfoDark, ContactAdd
-            pinView!.animatesDrop = true
-            pinView!.draggable = true //TODO
+            pinView!.animatesDrop = false
+            //pinView!.draggable = false //TODO
         }
         else {
             pinView!.annotation = annotation
@@ -199,7 +211,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
         println("pin selected")
         
-        view.draggable = true //TODO
+        //view.draggable = false //TODO
         
         // get the annotation for the annotation view
         let annotation: MKAnnotation = view.annotation
@@ -345,15 +357,26 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             switch state {
             case .AddPin:
                 
-                // Note: moved to .Ended state
+                // Create a new Pin instance, display on the map, and save to the context.
+//                previousEphemeralPin = ephemeralPin
+//                if let ePin = ephemeralPin {
+//                    ephemeralAnnotations.append(ePin.annotation)
+//                    println("ephemeralAnnotations += 1 \(ePin.annotation)")
+//                }
+//                ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
                 
-//                // get coordinates of touch in view
-                let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
-                println(".AddPin: viewPoint = \(viewPoint)")  // TODO: remove
-//                
+                // get coordinates of touch in view
+                let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
+                println(".AddPin: viewPoint = \(viewPoint)")
+                
+ Note:  OK, this pin is the one that ends up being the extra pin at the end. Figure out how to show the annotation on the map while dragging, without having this pin arround on the touch up.
+                
 //                // Create a new Pin instance, display on the map, and save to the context.
-//                createPinAtPoint(viewPoint)
-                
+//                self.ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
+//                if let pin = self.ephemeralPin {
+//                    self.ephemeralAnnotations.append(pin.annotation)
+//                }
+//                
             case .Edit:
                 return
             default:
@@ -363,42 +386,185 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         if(recognizer.state == UIGestureRecognizerState.Changed) {
             // Called while the finger is still down, if position moves by amount > tolerance
-            println("UIGestureRecognizerStateChanged")
+            
+//            println("UIGestureRecognizerStateChanged")
+            
+            // remove previous ephemeral pin
+//            dispatch_async(dispatch_get_main_queue()) {
+//                if let pin = self.ephemeralPin {
+//                    self.mapView.removeAnnotation(pin.annotation)
+//                    self.mapView.setNeedsDisplay()
+//                    println("removed ephemeral pin \(pin)")
+//                }
+//            }
+            
+            // TODO test only - nuke all annotations
+            // TODO: idea - set property on annotation and filter on it in the line below to only nuke all ephemeral pins.
+//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
+//            mapView.removeAnnotations( annotationsToRemove )
+            
+            // remove all ephemeral Annotations from the mapView
+            // let annotationsToRemove = ephemeralAnnotations
+            //self.mapView.removeAnnotations( ephemeralAnnotations )//  - darn. this doesn't appear to work. maybe the annotations i'm adding from the pin's coordinates don't match the coordinates in the mapview annotations? try filtering on mapview annotations removing anything not in our ephemeralAnnotations array, then pass the remaining collection to removeAnnotations(). That way I could see if matches occurr
+            //self.ephemeralAnnotations.removeAll(keepCapacity: true)
+            
+            let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
+            println(".Changed: viewPoint = \(viewPoint)")
             
             // TODO - Udacious
             //Check to make sure the pin has dropped
 //            if droppedPin != nil {
 //                
 //                //Get the coordinates from the map where we dragged over
-//                let tapPoint: CGPoint = sender.locationInView(mapView)
-//                let touchMapCoordinate: CLLocationCoordinate2D = mapView.convertPoint(tapPoint, toCoordinateFromView: mapView)
-//                
-//                //Update the pin view
+                //let tapPoint: CGPoint = recognizer.locationInView(mapView)
+                let mapCoordinate2D: CLLocationCoordinate2D = mapView.convertPoint(viewPoint, toCoordinateFromView: mapView)
+
+                // remove the ephemeral annotations
+                self.removeEphemeralAnnotationsFromMapView()
+            
+                //Update the pin view
 //                dispatch_async(dispatch_get_main_queue(), {
-//                    self.droppedPin.coordinate = touchMapCoordinate
+                    if let pin = self.ephemeralPin {
+                        println("update ephemeral pin coordinates and show \(pin)")
+                        // show new ephemeral pin
+                        pin.coordinate = mapCoordinate2D
+//                        self.showPinOnMap(pin)
+                        
+                        // Add the annotation to a local array of annotations.
+                        var annotations = [MKPointAnnotation]()
+                        annotations.append(pin.annotation)
+                        
+                        // record the annotation as an ephemeral annotation
+                        self.ephemeralAnnotations.append(pin.annotation)
+                        
+                        // Add the annotation(s) to the map.
+                        self.mapView.addAnnotations(annotations)
+                        
+                        // Tell the OS that the mapView needs to be refreshed.
+                        self.mapView.setNeedsDisplay()
+                        
+                        println("added ephemeral annotation. new count = \(self.ephemeralAnnotations.count)")
+                        
+                    }
 //                })
 //            }
         }
         
+        // START HERE
+        // TODO: Somewhere a second pin is being added. Comment out everywhere a pin is being created until I find the spot where the 2nd pin is no longer created.
+        
         // TODO - Udacious
         if(recognizer.state == UIGestureRecognizerState.Ended) {
 //            // gesture has finished (finger was lifted)
-//            println("UIGestureRecognizerStateEnded")
-//            
-//            //Create the Pin entity
-//            let pin = Pin(coords: droppedPin.coordinate, context: sharedContext)
-//            
-//            //Assign the pin to the droppedPin
-//            droppedPin.pin = pin
-//            //Save pin and fetch images...
+            println("UIGestureRecognizerStateEnded")
             
             // get coordinates of touch in view
-            let viewPoint: CGPoint = recognizer.locationInView(self.mapView) //TODO - remove:locationOfTouch(0, inView: self.mapView)
-            println(".Ended: viewPoint = \(viewPoint)")  // TODO: remove
+            let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
+            println(".Ended: viewPoint = \(viewPoint)")
+            let mapCoordinate2D: CLLocationCoordinate2D = mapView.convertPoint(viewPoint, toCoordinateFromView: mapView)
+            var annotation = MKPointAnnotation()
+            annotation.coordinate = mapCoordinate2D
+            
+            // record the annotation as an ephemeral annotation
+            self.ephemeralAnnotations.append(annotation)
+            
+            // remove any remaining ephemeral annotations
+            self.removeEphemeralAnnotationsFromMapView()
+            
+//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
+//            self.mapView.removeAnnotations( annotationsToRemove )
+            
+            println("ephemeralAnnotations count = \(self.ephemeralAnnotations.count)")
             
             // Create a new Pin instance, display on the map, and save to the context.
-            createPinAtPoint(viewPoint)
+            createPinAtPoint(viewPoint, bPersistPin: true)
+            
+            // Update the location of the pin with the final coordinates from the gesture tracker
+//TODO            persistentPin?.latitude = mapCoordinate2D.latitude
+//TODO            persistentPin?.longitude = mapCoordinate2D.longitude
+//            persistentPin?.coordinate = mapCoordinate2D
+            
+//            println("removing \(ephemeralAnnotations.count) ephemeral annotations")
+//            self.mapView.removeAnnotations( ephemeralAnnotations )
+//            ephemeralAnnotations.removeAll(keepCapacity: false)
+//            println("removed ephemeral annotations. number of annotations = \(ephemeralAnnotations.count) ")
+            
+            
+            // This works - it does remove all annotations
+//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
+//            self.mapView.removeAnnotations( annotationsToRemove )
+            
+            // filter self.mapView.annotations by ephemeralAnnotations
+            
+
+            
+//            let annotationsToRemove = [MKAnnotation]()
+//            for annotation in self.ephemeralAnnotations {
+//                let filtered = self.mapView.annotations.filter { $0 == annotation }
+//                annotationsToRemove.append(filtered)
+//            }
+            //filter(self.mapView.annotations) { contains(self.ephemeralAnnotations, $0) }
+            //self.mapView.annotations.filter( { m in contains(self.ephemeralAnnotations, m) })
+            
+// This code works:
+//            var annotationsToRemove = [MKAnnotation]()
+//            for annotation in self.ephemeralAnnotations {
+//                let filtered = self.mapView.annotations.filter( {
+//                    $0.coordinate.latitude == annotation.coordinate.latitude &&
+//                        $0.coordinate.longitude == annotation.coordinate.longitude
+//                })
+//                for annotation: MKAnnotation in filtered as! [MKAnnotation] {
+//                    annotationsToRemove.append(annotation)
+//                }
+//            }
+//            
+//            println("annotationsToRemove = \(annotationsToRemove) after filtering self.mapView.annotations by ephemeralAnnotations")
+//            println("number of annotationToRemove = \(annotationsToRemove.count)")
+//            self.mapView.removeAnnotations( annotationsToRemove )
+//            
+//            // Tell the OS that the mapView needs to be refreshed.
+            self.mapView.setNeedsDisplay()
         }
+    }
+    
+    func removeEphemeralAnnotationsFromMapView() {
+        var annotationsToRemove = [MKAnnotation]()
+        for annotation in self.ephemeralAnnotations {
+            let filtered = self.mapView.annotations.filter( {
+                $0.coordinate.latitude == annotation.coordinate.latitude &&
+                    $0.coordinate.longitude == annotation.coordinate.longitude
+            })
+            for annotation: MKAnnotation in filtered as! [MKAnnotation] {
+                annotationsToRemove.append(annotation)
+            }
+        }
+        
+        //            let annotationsToRemove = [MKAnnotation]()
+        //            for annotation in self.ephemeralAnnotations {
+        //                let filtered = self.mapView.annotations.filter { $0 == annotation }
+        //                annotationsToRemove.append(filtered)
+        //            }
+        //filter(self.mapView.annotations) { contains(self.ephemeralAnnotations, $0) }
+        //self.mapView.annotations.filter( { m in contains(self.ephemeralAnnotations, m) })
+        
+        
+        println("count of emphemeralAnnotations = \(ephemeralAnnotations.count)")
+        println("annotationsToRemove = \(annotationsToRemove) after filtering self.mapView.annotations by ephemeralAnnotations")
+        println("number of annotationToRemove = \(annotationsToRemove.count)")
+        self.mapView.removeAnnotations( annotationsToRemove )
+        
+        // reset the Ephemeral Annotations
+        self.ephemeralAnnotations.removeAll(keepCapacity: false)
+        
+        // reset the annotationsToRemove
+        annotationsToRemove.removeAll(keepCapacity: false)
+        
+        println("after removal, number of annotationsToRemove = \(annotationsToRemove.count)")
+        println("after removal, count of emphemeralAnnotations = \(ephemeralAnnotations.count)")
+
+        
+        // Tell the OS that the mapView needs to be refreshed.
+        self.mapView.setNeedsDisplay()
     }
     
     
@@ -501,29 +667,33 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     @brief Create a new Pin instance for the specified point in the view, display it on the map, and save to the context.
     @param (in) viewPoint - parent UIView of mapView
     */
-    func createPinAtPoint(viewPoint: CGPoint) {
+    func createPinAtPoint(viewPoint: CGPoint, bPersistPin: Bool) -> Pin {
         
         // get coordinates of touch in the map's gps coordinate space.
         let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
-        println("mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
+        println("CreatePinAtCoordinate mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
         
         // Create a pin (annotation) based on the calculated gps coordinates.
         let pin: Pin = createPinAtCoordinate(latitude: mapPoint.latitude, longitude: mapPoint.longitude)
         
-        // Display the pin on the map.
-        showPinOnMap(pin)
-        
-        // TODO: persist the pin
-        savePin()
-        
-        // TODO: Udacious - As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
-        self.flickr.searchPhotosBy2DCoordinates(pin) {
-            success, error, imageMetadata in
-            if success == true {
-                // Create a Photo instance for each image metadata dictionary in imageMetadata. Associate each Photo with the pin.
-                Photo.initPhotosFrom(imageMetadata, forPin: pin)
+        if bPersistPin {
+            // Display the pin on the map.
+            showPinOnMap(pin)
+
+            // TODO: persist the pin
+            savePin()
+            
+            // TODO: Udacious - As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
+            self.flickr.searchPhotosBy2DCoordinates(pin) {
+                success, error, imageMetadata in
+                if success == true {
+                    // Create a Photo instance for each image metadata dictionary in imageMetadata. Associate each Photo with the pin.
+                    Photo.initPhotosFrom(imageMetadata, forPin: pin)
+                }
             }
         }
+        
+        return pin
     }
     
     /* Create a new Pin at the specified 2D map coordinate and return it. */
@@ -548,6 +718,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* Display the specified pin on the MKMapView */
     func showPinOnMap(pin: Pin) {
+        println("showPinOnMap: \(pin)")
         // Add the annotation to a local array of annotations.
         var annotations = [MKPointAnnotation]()
         annotations.append(pin.annotation)

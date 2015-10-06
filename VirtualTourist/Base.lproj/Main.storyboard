@@ -196,7 +196,7 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                 </subviews>
-                                <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                <color key="backgroundColor" cocoaTouchSystemColor="scrollViewTexturedBackgroundColor"/>
                                 <constraints>
                                     <constraint firstAttribute="centerX" secondItem="YVo-Yj-05o" secondAttribute="centerX" id="3gH-y8-ThO"/>
                                     <constraint firstAttribute="centerY" secondItem="tZS-Tg-Xww" secondAttribute="centerY" constant="14" id="FnQ-9R-5Gp"/>
