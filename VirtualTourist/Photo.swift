@@ -36,7 +36,7 @@ class Photo : NSManagedObject {
     /* title bestowed on image by flickr user */
     @NSManaged var title: String?
     
-    /* id of flickr image. Used as base of filename for associated NSData stored on local disk. */
+    /* ID of flickr image. Used as the base of the filename for the file containing the associated NSData. The file is stored on the local disk and can be managed with the image management helper methods of this class. */
     @NSManaged var id: String?
     
     /* The UIImage representation of the picture data. Acquire using the getImage method. */
@@ -59,24 +59,7 @@ class Photo : NSManagedObject {
         title = dictionary[InitKeys.title] as? String
         id = dictionary[InitKeys.id] as? String
     }
-    
-    // TODO - test that this delete works on deinit.
-    // Remove the file associated with this object's image if it exists on the filesystem.
-//    deinit {
-//        if let id = self.id {  // TODO: this assignment and test fails
-//            let path = pathForImageFileWith(id)
-//            if let path = path {
-//                if NSFileManager.defaultManager().fileExistsAtPath(path) {
-//                    var error:NSErrorPointer = NSErrorPointer()
-//                    NSFileManager.defaultManager().removeItemAtPath(path, error: error)
-//                    if error != nil {
-//                        println(error.debugDescription)
-//                    }
-//                }
-//            }
-//        }
-//    }
-    
+        
     /* 
     @brief Acquire the UIImage for this Photo object.
     @discussion The image is retrieved using the following sequence:
@@ -147,9 +130,8 @@ class Photo : NSManagedObject {
                     return
                 } else {
                     // TODO - handle the failed download by retrying once?
-                    println("failed to download image. stick with placholder image.")
-                    var error: NSError = NSError(domain: "Image download failed.", code: 909, userInfo: nil)
-                    completion(success: false, error: error, image: nil)
+                    let vtError = VTError(errorString: "Image download from Flickr service failed.", errorCode: VTError.ErrorCodes.FLICKR_FILE_DOWNLOAD_ERROR)
+                    completion(success: false, error: vtError.error, image: nil)
                 }
             }
         }
@@ -329,14 +311,13 @@ extension Photo {
                     completion(success: true, error: nil, image: picture)
                 }
                 else {
-                    let error = NSError(domain: "cannot convert image data", code: 908, userInfo: nil)
-                    completion(success: false, error: error, image: nil)
+                    let vtError = VTError(errorString: "Cannot convert image data.", errorCode: VTError.ErrorCodes.IMAGE_CONVERSION_ERROR)
+                    completion(success: false, error: vtError.error, image: nil)
                 }
                 
             } else {
-                println("Image does not exist at \(imageURL)")
-                let error = NSError(domain: "Image does not exist at \(imageURL)", code: 904, userInfo: nil)
-                completion(success: false, error: error, image: nil)
+                let vtError = VTError(errorString: "Image does not exist at \(imageURL)", errorCode: VTError.ErrorCodes.FILE_NOT_FOUND_ERROR)
+                completion(success: false, error: vtError.error, image: nil)
             }
         })
     }

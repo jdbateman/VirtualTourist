@@ -10,13 +10,14 @@ import UIKit
 
 class PhotoAlbumCell: UICollectionViewCell {
 
-    var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 50, 50)) as UIActivityIndicatorView
+    var activityIndicator : UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRectMake(0, 0, 84, 84)) as UIActivityIndicatorView
 
     @IBOutlet weak var imageView: UIImageView!
     
     /* show activity indicator */
     func startActivityIndicator() {
-        activityIndicator.center = self.imageView.center
+        activityIndicator.center =  CGPointMake(42.0, 42.0) // self.imageView.center
+        println("*********************** cell imageView.bounds = \(imageView.bounds). imageView.center = \(imageView.center)")
         activityIndicator.hidesWhenStopped = true
         activityIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.WhiteLarge
         imageView.addSubview(activityIndicator)

@@ -69,9 +69,9 @@ class Flickr {
         
         let task = session.dataTaskWithRequest(request) {data, response, downloadError in
             if let error = downloadError {
-                println("Could not complete the request \(error)")
+                let vtError = VTError(errorString: "Could not complete http request to Flickr service. \(error)", errorCode: VTError.ErrorCodes.FLICKR_REQUEST_ERROR)
+                completionHandler(success: false, error: vtError.error, arrayOfDictionaries: nil, nextPage: page)
             } else {
-                
                 var parsingError: NSError? = nil
                 let parsedResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments, error: &parsingError) as! NSDictionary
                 
@@ -93,14 +93,12 @@ class Flickr {
                             completionHandler(success: success, error: error, arrayOfDictionaries: arrayOfDicts, nextPage: Int32(++pageNum))
                         }
                     } else {
-                        println("Cant find key 'pages' in \(photosDictionary)")
-                        var error: NSError = NSError(domain: "Cant find key 'pages' in \(photosDictionary)", code: 905, userInfo: nil)
-                        completionHandler(success: false, error: error, arrayOfDictionaries: nil, nextPage: page)
+                        let vtError = VTError(errorString: "Cant find key 'pages' in response to the Flickr api search request.", errorCode: VTError.ErrorCodes.JSON_PARSE_ERROR)
+                        completionHandler(success: false, error: vtError.error, arrayOfDictionaries: nil, nextPage: page)
                     }
                 } else {
-                    println("Cant find key 'photos' in \(parsedResult)")
-                    var error: NSError = NSError(domain: "Cant find key 'photos' in response to the Flickr api search request.", code: 906, userInfo: nil)
-                    completionHandler(success: false, error: error, arrayOfDictionaries: nil, nextPage: page)
+                    let vtError = VTError(errorString: "Cant find key 'photos' in response to the Flickr api search request.", errorCode: VTError.ErrorCodes.JSON_PARSE_ERROR)
+                    completionHandler(success: false, error: vtError.error, arrayOfDictionaries: nil, nextPage: page)
                 }
             }
         }
@@ -132,9 +130,8 @@ class Flickr {
         
         let task = session.dataTaskWithRequest(request) {data, response, downloadError in
             if let error = downloadError {
-                println("Could not complete the request \(error)")
-                let error = NSError(domain: "request failed", code: 902, userInfo: nil)
-                completionHandler(success: false, error: error, arrayOfDicts: nil)
+                let vtError = VTError(errorString: "Could not complete http request to Flickr service. \(error)", errorCode: VTError.ErrorCodes.FLICKR_REQUEST_ERROR)
+                completionHandler(success: false, error: vtError.error, arrayOfDicts: nil)
             } else {
                 var parsingError: NSError? = nil
                 let parsedResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments, error: &parsingError) as! NSDictionary
@@ -182,19 +179,16 @@ class Flickr {
                             
                             completionHandler(success: true, error: nil, arrayOfDicts: dictionariesToReturn)
                         } else {
-                            println("Cant find key 'photo' in \(photosDictionary)")
-                            let error = NSError(domain: "Cant find key 'photo' in \(photosDictionary)", code: 903, userInfo: nil)
-                            completionHandler(success: false, error: error, arrayOfDicts: nil)
+                            let vtError = VTError(errorString: "Cant find key 'photo' in response to the Flickr api search request.", errorCode: VTError.ErrorCodes.JSON_PARSE_ERROR)
+                            completionHandler(success: false, error: vtError.error, arrayOfDicts: nil)
                         }
                     } else {
                         // No photos found. Return an empty list.
                         completionHandler(success: true, error: nil, arrayOfDicts: nil)
                     }
                 } else {
-                    println("Cant find key 'photos' in \(parsedResult)")
-                    
-                    var error: NSError = NSError(domain: "Cant find key 'photos' in \(parsedResult)", code: 901, userInfo: nil)
-                    completionHandler(success: false, error: error, arrayOfDicts: nil)
+                    let vtError = VTError(errorString: "Cant find key 'photos' in response to the Flickr api search request.", errorCode: VTError.ErrorCodes.JSON_PARSE_ERROR)
+                    completionHandler(success: false, error: vtError.error, arrayOfDicts: nil)
                 }
             }
         }

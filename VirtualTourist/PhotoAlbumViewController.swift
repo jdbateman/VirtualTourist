@@ -14,12 +14,12 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
 */
 
-// TODO: properly define NSError strings as in CoreDataStackManager.swift. Update NSError objects in the app.
-
-// Question: Why does the New Collection button take so long to enable?
-// Question: suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
-// Question: is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
-// Question: An image has been downloaded and is available in memory to be rendered on a cell in PhotoAlbumViewController. Can I eliminate the delay between the time cell.stopActivityIndicator() is called in the PhotoAlbumViewController.configureCell method, and the time when the image is actually rendered for that cell? The delay can be a couple of seconds. I tried calling setNeedsDisplay() but that didn't seem to help.
+// Questions:
+// 1. Why does the New Collection button sometimes take many seconds (up to 20 or 30) to enable?
+// 2. suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
+// 3. is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
+// 4. An image has been downloaded and is available in memory to be rendered on a cell in PhotoAlbumViewController. Can I eliminate the delay between the time cell.stopActivityIndicator() is called in the PhotoAlbumViewController.configureCell method, and the time when the image is actually rendered for that cell? The delay can be a couple of seconds. I tried calling setNeedsDisplay() but that didn't seem to help.
+// 5. The bounds of the UIImageView in the PhotoAlbumCell are inconsistently reported as (0.0, 0.0, 128.0, 128.0) and (0.0, 0.0, 84.0, 84.0). When I make a call to self.imageView.center I get either 64.0 or 42.0 for both the x & y coordinates. If I get the former, then the activity indicator is positioned incorrectly on the bottom right quadrant of the cell. If I get the latter then the activity indicator is positioned correctly in the center of the cell. I hard coded  the center of the activity indicator to (42.0, 42.0) and it alwayas appears in the center of the cell. Any insight into why the center of my image view is inconsistantly reported? It doesn't seem right to hard code  the center value.
 
 import UIKit
 import CoreData
@@ -216,21 +216,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     lazy var sharedContext: NSManagedObjectContext = {
         return CoreDataStackManager.sharedInstance().managedObjectContext!
     }()
-    
-//    /* 
-//    @brief Remove the Photo object from the Core data store.
-//    @discussion If the photo contains a file containing image data on the filesystem that file is also deleted. Any cached image data associated with the photo is also deleted.
-//    @param photo (in) - The Photo object to delete.
-//    @param bSaveContext (in) - true call saveContext on the Core Data shared instance. false is a noop.
-//    */
-//    func deletePhoto(photo: Photo, bSaveContext: Bool) {
-//        photo.removeFromCache()
-//        photo.deleteFileFromFileSystem()
-//        self.sharedContext.deleteObject(photo)
-//        if bSaveContext {
-//            CoreDataStackManager.sharedInstance().saveContext()
-//        }
-//    }
     
     
     // MARK: - Fetched results controller
@@ -438,6 +423,7 @@ extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
     }
 }
 
+// TODO - no longer needed?
 /* Implement placeholder images to occupy cells while the final image is downloaded from Flickr. */
 extension PhotoAlbumViewController : flickrDelegate {
     
