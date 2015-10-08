@@ -17,7 +17,6 @@ class PhotoAlbumCell: UICollectionViewCell {
     /* show activity indicator */
     func startActivityIndicator() {
         activityIndicator.center =  CGPointMake(42.0, 42.0) // self.imageView.center
-        println("*********************** cell imageView.bounds = \(imageView.bounds). imageView.center = \(imageView.center)")
         activityIndicator.hidesWhenStopped = true
         activityIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.WhiteLarge
         imageView.addSubview(activityIndicator)

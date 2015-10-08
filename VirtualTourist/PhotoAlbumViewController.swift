@@ -14,14 +14,6 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 @copyright Copyright (c) 2015 John Bateman. All rights reserved.
 */
 
-// Questions:
-// 1. Why does the New Collection button sometimes take many seconds (up to 20 or 30) to enable?
-// 2. suggestion for how to optimize management/download of photos during scrolling? - what if i quickly scroll halfway down the list
-// 3. is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
-// 4. An image has been downloaded and is available in memory to be rendered on a cell in PhotoAlbumViewController. Can I eliminate the delay between the time cell.stopActivityIndicator() is called in the PhotoAlbumViewController.configureCell method, and the time when the image is actually rendered for that cell? The delay can be a couple of seconds. I tried calling setNeedsDisplay() but that didn't seem to help.
-// 5. The bounds of the UIImageView in the PhotoAlbumCell are inconsistently reported as (0.0, 0.0, 128.0, 128.0) and (0.0, 0.0, 84.0, 84.0). When I make a call to self.imageView.center I get either 64.0 or 42.0 for both the x & y coordinates. If I get the former, then the activity indicator is positioned incorrectly on the bottom right quadrant of the cell. If I get the latter then the activity indicator is positioned correctly in the center of the cell. I hard coded  the center of the activity indicator to (42.0, 42.0) and it alwayas appears in the center of the cell. Any insight into why the center of my image view is inconsistantly reported? It doesn't seem right to hard code  the center value.
-// 6. [forum] Is instantiating a new NSManagedObject through an init method enough to cause it to be saved to the context, or must saveContext() be called on the managedObjectContext after the object is initialized to ensure it is persisted to the Core Data store?
-
 import UIKit
 import CoreData
 import MapKit
@@ -164,8 +156,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     // MARK: buttons
     
     func onNewCollectionButtonTap() {
-        println("New Collection button selected.")
-        
         // remove all photos associated with this pin in core data store
         if let pin = pin {
             for photo in pin.photos {
@@ -188,7 +178,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
-        println("numberOfItemsInSection reports number of Photos = \(sectionInfo.numberOfObjects) in section \(section)")
         let count = sectionInfo.numberOfObjects
         
         if count > 0 {
@@ -262,8 +251,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         fetchedResultsController.performFetch(&error)
         
-        println("fetchPhotos was called ")
-        
         if let error = error {
             VTAlert(viewController:self).displayErrorAlertView("Error retrieving photos", message: "Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
         }
@@ -276,18 +263,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     // Initialize arrays of index paths which identify objects that will need to be changed.
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
-        println("start controllerWillChangeContent")
-        
         insertedIndexPaths = [NSIndexPath]()
         deletedIndexPaths = [NSIndexPath]()
         updatedIndexPaths = [NSIndexPath]()
-        
-        println("end controllerWillChangeContent")
     }
     
     func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
         // Our project does not use sections. So we can ignore these invocations.
-        println("in didChangeSection")
     }
     
     // Save the index path of each object that is added, deleted, or updated as the change is identified by Core Data.
@@ -296,23 +278,19 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         switch type{
             
         case .Insert:
-            println("Insert an item")
             // A new Photo has been added to Core Data. Save the "newIndexPath" parameter so the cell can be added later.
             insertedIndexPaths.append(newIndexPath!)
             break
         case .Delete:
-            println("Delete an item")
             // A Photo has been deleted from Core Data. Save the "indexPath" parameter so the corresponding cell can be removed later.
             deletedIndexPaths.append(indexPath!)
             break
         case .Update:
-            println("Update an item.")
             // A change was made to an existing object in Core Data.
             // (For example, when an images is downloaded from Flickr in the Virtual Tourist app)
             updatedIndexPaths.append(indexPath!)
             break
         case .Move:
-            println("Move an item. Not implemnted in this app.")
             break
         default:
             break
@@ -322,26 +300,21 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     // Do an update of all changes in the current batch.
     func controllerDidChangeContent(controller: NSFetchedResultsController) {
         
-        println("in controllerDidChangeContent. changes.count: \(insertedIndexPaths.count + deletedIndexPaths.count + updatedIndexPaths.count)")
-        
         collectionView.performBatchUpdates({() -> Void in
             
             // added
             for indexPath in self.insertedIndexPaths {
                 self.collectionView.insertItemsAtIndexPaths([indexPath])
-                println("inserted items")
             }
             
             // deleted
             for indexPath in self.deletedIndexPaths {
                 self.collectionView.deleteItemsAtIndexPaths([indexPath])
-                println("deleted items")
             }
             
             // updated
             for indexPath in self.updatedIndexPaths {
                 self.collectionView.reloadItemsAtIndexPaths([indexPath])
-                println("reloaded items")
             }
             
             }, completion: nil)

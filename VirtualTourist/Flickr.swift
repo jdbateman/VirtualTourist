@@ -46,7 +46,7 @@ class Flickr {
     var delegate: flickrDelegate?
     
     /* The maximum number of images to return for a page of images */
-    static let MAX_PHOTOS_TO_FETCH = 15
+    static let MAX_PHOTOS_TO_FETCH = 24
     
     /*!
     @brief Makes an https Get request using the Flickr api to search for an image
@@ -149,11 +149,11 @@ class Flickr {
                             var picturesToReturn = [UIImage]()
                             var dictionariesToReturn = [[String: AnyObject?]]()
                             
-                            //let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
+                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
                             // TODO: reenable: 
-                            let numPhotosToFetch = photosArray.count
+                            // let numPhotosToFetch = photosArray.count
                             
-                            println("Flickr.getImageUrlsFromFlickrBySearchWithPage reports \(photosArray.count) photos found on page \(pageNumber).")
+                            println("Flickr.searchFlickrForImageMetadataByPageWith reports \(photosArray.count) photos found on page \(pageNumber).")
                             
                             // send delegate the number of photos that will be returned
                             if let delegate = self.delegate {
@@ -223,8 +223,8 @@ class Flickr {
 /* Flickr api convenience method and supporting helper functions. */
 extension Flickr {
     
-    static let BOUNDING_BOX_HALF_WIDTH = 1.0
-    static let BOUNDING_BOX_HALF_HEIGHT = 1.0
+    static let BOUNDING_BOX_HALF_WIDTH = 0.5
+    static let BOUNDING_BOX_HALF_HEIGHT = 0.5
     static let LATITUDE_MIN = -90.0
     static let LATITUDE_MAX = 90.0
     static let LONGITUDE_MIN = -180.0

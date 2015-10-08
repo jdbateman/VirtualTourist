@@ -163,8 +163,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* The done button was selected. Modify UI and state to put the controller in AddPin mode. */
     func onDoneButtonTap() {
-        println("Done button tapped.")
-        
         // Remove the "Tap Pins to Delete" label. Animate down.
         
         // Animate
@@ -219,7 +217,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* Handler for touch on a pin. */
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
-        println("pin selected")
         
         // get the annotation for the annotation view
         let annotation: MKAnnotation = view.annotation
@@ -252,7 +249,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* The region displayed by the mapview has just changed. */
     func mapView(mapView: MKMapView!, regionDidChangeAnimated animated: Bool) {
-        println("region changed: \(mapView.region.center.latitude, mapView.region.center.longitude)")
         updateAndSaveMapRegion()
     }
     
@@ -273,7 +269,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
   
         // Check for Errors
         if error != nil {
-            println("Error in fectchAllActors(): \(error)")
+            println("Error in fetchPin(): \(error)")
         }
         
         // Return the first result, or nil
@@ -291,7 +287,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "latitude", ascending: false), NSSortDescriptor(key: "longitude", ascending: false)]
         let results = sharedContext.executeFetchRequest(fetchRequest, error:errorPointer)
         if errorPointer != nil {
-            println("Error in fectchAllActors(): \(errorPointer)")
+            println("Error in fetchAllPins(): \(errorPointer)")
         }
         return results as? [Pin] ?? [Pin]()
     }
@@ -334,7 +330,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     func addLongPressRecognizer() {
         if let longPressRecognizer = longPressRecognizer {
             self.mapView.addGestureRecognizer(longPressRecognizer)
-            println("longPressRecognizer added to mapView")
         }
         self.mapView.userInteractionEnabled = true
     }
@@ -351,24 +346,18 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         if(recognizer.state == UIGestureRecognizerState.Began) {
             // gesture started
-            println("UIGestureRecognizerStateBegan: long press on pin")
-            
-            println(".Began initial ephemeral annotation count = \(self.ephemeralAnnotations.count)")
-            println(".Began initial mapView annotation count = \(self.mapView.annotations.count)")
             
             switch state {
             case .AddPin:
                 
                 // get coordinates of touch in view
                 let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
-                println(".AddPin: viewPoint = \(viewPoint)")
                 
                 // Create a new Pin instance, display on the map, and save to a scratch context.
                 self.ephemeralPin = createPinAtPoint(viewPoint, bPersistPin: false)
 
                 if let pin = self.ephemeralPin {
                     self.ephemeralAnnotations.append(pin.annotation)
-                    println("added ephemeral annotation.")
 
                     // Add the annotation to a local array of annotations.
                     var annotations = [MKPointAnnotation]()
@@ -381,9 +370,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                     self.mapView.setNeedsDisplay()
                 }
                 
-                println(".Began ephemeral annotation count = \(self.ephemeralAnnotations.count)")
-                println(".Began mapView annotation count = \(self.mapView.annotations.count)")
-                
             case .Edit:
                 return
             default:
@@ -392,14 +378,12 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         }
         
         if(recognizer.state == UIGestureRecognizerState.Changed) {
-            // Called while the finger is still down, if position moves by amount > tolerance
+            // Finger is being dragged a distance greater than a threshold distance.
             
             switch state {
             case .AddPin:
                 
                 let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
-                println(".Changed: viewPoint = \(viewPoint)")
-                
                 let mapCoordinate2D: CLLocationCoordinate2D = mapView.convertPoint(viewPoint, toCoordinateFromView: mapView)
                 
                 // remove the ephemeral annotations
@@ -407,7 +391,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                 
                 //Update the pin view
                 if let pin = self.ephemeralPin {
-                    println("update ephemeral pin coordinates and show \(pin)")
                     // show new ephemeral pin
                     pin.coordinate = mapCoordinate2D
                     
@@ -421,16 +404,8 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                     // Add the annotation(s) to the map.
                     self.mapView.addAnnotations(annotations)
                     
-                    println("mapView.addAnnotations in handleLongPress() .Changed. annotations: \(annotations)")
-                    
                     // Tell the OS that the mapView needs to be refreshed.
                     self.mapView.setNeedsDisplay()
-                    
-                    println(".Changed added ephemeral annotation. new count = \(self.ephemeralAnnotations.count)")
-                    println(".Changed added  mapView  annotation. new count = \(self.mapView.annotations.count)")
-                    
-                    println(".Changed debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-                    println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
                 }
                 
             case .Edit:
@@ -450,8 +425,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             case .AddPin:
                 // remove the ephemeral annotations
                 self.removeEphemeralAnnotationsFromMapView()
-                println(".Ended debug. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-                println("ephemeralAnnotations: \(self.ephemeralAnnotations), mapView annotations: \(self.mapView.annotations)")
                 
                 // Create a new Pin instance, display on the map, and save to the context.
                 let viewPoint1: CGPoint = recognizer.locationInView(self.mapView)
@@ -478,18 +451,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             }
         }
         
-        //            let annotationsToRemove = [MKAnnotation]()
-        //            for annotation in self.ephemeralAnnotations {
-        //                let filtered = self.mapView.annotations.filter { $0 == annotation }
-        //                annotationsToRemove.append(filtered)
-        //            }
-        //filter(self.mapView.annotations) { contains(self.ephemeralAnnotations, $0) }
-        //self.mapView.annotations.filter( { m in contains(self.ephemeralAnnotations, m) })
-        
-        
-        println("count of emphemeralAnnotations = \(ephemeralAnnotations.count)")
-        println("annotationsToRemove = \(annotationsToRemove) after filtering self.mapView.annotations by ephemeralAnnotations")
-        println("number of annotationToRemove = \(annotationsToRemove.count)")
         self.mapView.removeAnnotations( annotationsToRemove )
         
         // reset the Ephemeral Annotations
@@ -497,10 +458,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         // reset the annotationsToRemove
         annotationsToRemove.removeAll(keepCapacity: false)
-        
-        println("after removal, number of annotationsToRemove = \(annotationsToRemove.count)")
-        println("after removal, count of emphemeralAnnotations = \(ephemeralAnnotations.count)")
-
         
         // Tell the OS that the mapView needs to be refreshed.
         self.mapView.setNeedsDisplay()
@@ -564,8 +521,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             self.mapRegion!.longitude = self.mapView.region.center.longitude
             self.mapRegion!.spanLatitude = self.mapView.region.span.latitudeDelta
             self.mapRegion!.spanLongitude = self.mapView.region.span.longitudeDelta
-            
-            //println("updated existing MapRegion: \(self.mapRegion)")
         } else {
             // Create a map region instance initialized to the mapView's current region.
             var dict = [String: AnyObject]()
@@ -574,8 +529,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             dict[MapRegion.Keys.spanLatitude] = self.mapView.region.span.latitudeDelta
             dict[MapRegion.Keys.spanLongitude] = self.mapView.region.span.longitudeDelta
             self.mapRegion = MapRegion(dictionary: dict, context: sharedContext)
-            
-            //println("created a new MapRegion: \(self.mapRegion)")
         }
         
         // persist the controller's mapRegion property
@@ -587,16 +540,13 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         var regions = fetchAllMapRegions()
         for region: MapRegion in regions {
-            println("deleting a persisted region: \(region.latitude, region.longitude, region.spanLatitude, region.spanLongitude)")
             sharedContext.deleteObject(region)
             CoreDataStackManager.sharedInstance().saveContext()
         }
     }
     
     func logMapViewRegion() {
-        
         let region = self.mapView.region
-        println("map region: \(region.center.latitude, region.center.longitude, region.span.latitudeDelta, region.span.longitudeDelta)")
     }
     
     
@@ -669,15 +619,12 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* Display the specified pin on the MKMapView */
     func showPinOnMap(pin: Pin) {
-        println("showPinOnMap: \(pin)")
         // Add the annotation to a local array of annotations.
         var annotations = [MKPointAnnotation]()
         annotations.append(pin.annotation)
         
         // Add the annotation(s) to the map.
         self.mapView.addAnnotations(annotations)
-        
-        println("mapView.addAnnotations in showPinOnMap(). annotations: \(annotations)")
         
         // Center the map on the coordinate(s).
         //self.mapView.setCenterCoordinate(pin.coordinate, animated: true)
@@ -704,27 +651,9 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         // add all the pins to the mapView
         mapView.addAnnotations(annotationsToAdd)
         
-        println("mapView.addAnnotations in refreshPins(). annotations: \(annotationsToAdd)")
-        
         // draw the pins
         dispatch_async(dispatch_get_main_queue()) {
             self.mapView.setNeedsDisplay()
         }
     }
-    
-//    /* handle changes to drag state of an annotation */
-//    func mapView(mapView: MKMapView!, annotationView view: MKAnnotationView!, didChangeDragState newState: MKAnnotationViewDragState, fromOldState oldState: MKAnnotationViewDragState) {
-////        switch (newState) {
-////        case .Starting:
-////            view.dragState = .Dragging
-////        case .Ending, .Canceling:
-////            view.dragState = .None
-////        default: break
-////        }
-//        
-//        if newState == MKAnnotationViewDragState.Ending {
-//            let annotation = view.annotation
-//            println("The annotation is located at: \(annotation.coordinate.latitude),\(annotation.coordinate.longitude)")
-//        }
-//    }
 }

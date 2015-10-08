@@ -81,6 +81,10 @@ class Photo : NSManagedObject {
         if let id = self.id {
             if let image = getImageFromFileSystem(id) {
                 println("image loaded from file system")
+                
+                // Cache the image in memory.
+                self.cacheImage(image)
+                
                 completion(success: true, error: nil, image: image)
                 return
             }
@@ -221,7 +225,12 @@ extension Photo {
             })
         }
         
-        // save the image to the image cache
+        // save the image to the image cache in memory
+        self.cacheImage(theImage)
+    }
+    
+    /* Save the image data to the image cache in memory. */
+    func cacheImage(theImage: UIImage) {
         if let url = self.imageUrl {
             let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
             dispatch_async(backgroundQueue, {
