@@ -60,7 +60,8 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* A temporary pin used to track and display a pin while it is dragged. */
     var ephemeralPin: Pin?
-//    var previousEphemeralPin: Pin?
+    
+    /* A annotation temporarily displayed on the mapView while the user drags their finger around the map. */
     var ephemeralAnnotations = [MKAnnotation]()
     
     override func awakeFromNib() {
@@ -101,6 +102,12 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         // disable display of the navigation controller's toolbar
         self.navigationController?.setToolbarHidden(true, animated: false)
+        
+        // check for fatal Core Data error
+        if CoreDataStackManager.sharedInstance().bCoreDataSeriousError {
+            var errorMessage: String = CoreDataStackManager.sharedInstance().seriousErrorInfo.message
+            VTAlert(viewController:self).displayErrorAlertView("Core Data Error", message: errorMessage)
+        }
     }
     
 //    override func viewDidAppear(animated: Bool) {
@@ -128,10 +135,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     
     /* The edit button was selected. Modify UI and state to put the controller in edit mode. */
     func onEditButtonTap() {
-        // TODO - debug: remove
-        // Tell the OS that the mapView needs to be refreshed.
-        self.mapView.setNeedsDisplay()
-        
         // Dispay "Tap Pins to Delete" label. Animate in from bottom.
         hintContainerView.hidden = false
         //self.hintContainerView.alpha = 0.0
@@ -205,7 +208,7 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             pinView!.pinColor = .Purple
             pinView!.rightCalloutAccessoryView = UIButton.buttonWithType(.DetailDisclosure) as! UIButton  // DetailDisclosure, InfoLight, InfoDark, ContactAdd
             pinView!.animatesDrop = false
-            //pinView!.draggable = false //TODO
+            //pinView!.draggable = false
         }
         else {
             pinView!.annotation = annotation
@@ -218,8 +221,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
         println("pin selected")
         
-        //view.draggable = false //TODO
-        
         // get the annotation for the annotation view
         let annotation: MKAnnotation = view.annotation
         
@@ -227,34 +228,25 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         var pin: Pin? = fetchPin(atCoordinate: annotation.coordinate)
         
         switch state {
+        
         case .AddPin:
             // display PhotoAlbumViewController
             var storyboard = UIStoryboard (name: "Main", bundle: nil)
             var controller = storyboard.instantiateViewControllerWithIdentifier("PhotoAlbumControllerID") as! PhotoAlbumViewController
             controller.pin = pin
             self.navigationController?.pushViewController(controller, animated: true)
+        
         case .Edit:
             // delete the selected pin
             if let pin = pin {
                 deletePin(pin)
             }
             
-            // TODO: - need to remove the annotation from the MKMapView
+            // Remove the annotation from the MKMapView.
             self.mapView.removeAnnotation(annotation)
             
         default:
             return
-        }
-    }
-    
-    //TODO - remove...
-    /* This delegate method is implemented to respond to taps. It presents the PhotoAlbumViewController. */
-    func mapView(mapView: MKMapView!, annotationView: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
-        println("mapView:mapView:annotationView:calloutAccessoryControlTapped:")
-        if control == annotationView.rightCalloutAccessoryView {
-//            if let urlString = annotationView.annotation.subtitle {
-//                showUrlInEmbeddedBrowser(urlString)
-//            }
         }
     }
     
@@ -472,84 +464,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                 return
             }
         }
-/*
-// =======================================================================================================
-            
-//            // gesture has finished (finger was lifted)
-            println("UIGestureRecognizerStateEnded")
-            
-            // get coordinates of touch in view
-            let viewPoint: CGPoint = recognizer.locationInView(self.mapView)
-            println(".Ended: viewPoint = \(viewPoint)")
-            let mapCoordinate2D: CLLocationCoordinate2D = mapView.convertPoint(viewPoint, toCoordinateFromView: mapView)
-            var annotation = MKPointAnnotation()
-            annotation.coordinate = mapCoordinate2D
-            
-            println(".Ended before append. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-            
-            // record the annotation as an ephemeral annotation
-            self.ephemeralAnnotations.append(annotation)
-            
-            println(".Ended after append but before removal. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-            
-            // remove any remaining ephemeral annotations
-            self.removeEphemeralAnnotationsFromMapView()
-            
-//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
-//            self.mapView.removeAnnotations( annotationsToRemove )
-            
-            println(".Ended after removal. ephemeralAnnotations count = \(self.ephemeralAnnotations.count), mapView annotations = \(self.mapView.annotations.count)")
-            
-            // Create a new Pin instance, display on the map, and save to the context.
-            createPinAtPoint(viewPoint, bPersistPin: true)
-            
-            // Update the location of the pin with the final coordinates from the gesture tracker
-//TODO            persistentPin?.latitude = mapCoordinate2D.latitude
-//TODO            persistentPin?.longitude = mapCoordinate2D.longitude
-//            persistentPin?.coordinate = mapCoordinate2D
-            
-//            println("removing \(ephemeralAnnotations.count) ephemeral annotations")
-//            self.mapView.removeAnnotations( ephemeralAnnotations )
-//            ephemeralAnnotations.removeAll(keepCapacity: false)
-//            println("removed ephemeral annotations. number of annotations = \(ephemeralAnnotations.count) ")
-            
-            
-            // This works - it does remove all annotations
-//            let annotationsToRemove = self.mapView.annotations.filter { $0 !== self.mapView.userLocation }
-//            self.mapView.removeAnnotations( annotationsToRemove )
-            
-            // filter self.mapView.annotations by ephemeralAnnotations
-            
-
-            
-//            let annotationsToRemove = [MKAnnotation]()
-//            for annotation in self.ephemeralAnnotations {
-//                let filtered = self.mapView.annotations.filter { $0 == annotation }
-//                annotationsToRemove.append(filtered)
-//            }
-            //filter(self.mapView.annotations) { contains(self.ephemeralAnnotations, $0) }
-            //self.mapView.annotations.filter( { m in contains(self.ephemeralAnnotations, m) })
-            
-// This code works:
-//            var annotationsToRemove = [MKAnnotation]()
-//            for annotation in self.ephemeralAnnotations {
-//                let filtered = self.mapView.annotations.filter( {
-//                    $0.coordinate.latitude == annotation.coordinate.latitude &&
-//                        $0.coordinate.longitude == annotation.coordinate.longitude
-//                })
-//                for annotation: MKAnnotation in filtered as! [MKAnnotation] {
-//                    annotationsToRemove.append(annotation)
-//                }
-//            }
-//            
-//            println("annotationsToRemove = \(annotationsToRemove) after filtering self.mapView.annotations by ephemeralAnnotations")
-//            println("number of annotationToRemove = \(annotationsToRemove.count)")
-//            self.mapView.removeAnnotations( annotationsToRemove )
-//            
-//            // Tell the OS that the mapView needs to be refreshed.
-            self.mapView.setNeedsDisplay()
-        }
-*/
     }
     
     func removeEphemeralAnnotationsFromMapView() {
@@ -696,7 +610,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
         
         // get coordinates of touch in the map's gps coordinate space.
         let mapPoint: CLLocationCoordinate2D = self.mapView.convertPoint(viewPoint, toCoordinateFromView: self.mapView)
-        println("CreatePinAtCoordinate mapPoint = \(mapPoint.latitude), \(mapPoint.longitude)") // TODO: remove
         
         var context: NSManagedObjectContext
         if bPersistPin {
@@ -713,10 +626,10 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
             // Display the pin on the map.
             showPinOnMap(pin)
 
-            // TODO: persist the pin
-//TODO - debug             savePin()
+            // persist the pin
+            savePin()
 
-            // TODO: Udacious - As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
+            // As soon as a pin is dropped on the map, the photos for that location are pre-fetched from Flickr
             self.flickr.searchPhotosBy2DCoordinates(pin) {
                 success, error, imageMetadata in
                 if success == true {
@@ -724,7 +637,6 @@ class TravelLocationsMapViewController: UIViewController, /*NSFetchedResultsCont
                     Photo.initPhotosFrom(imageMetadata, forPin: pin)
                 }
             }
-
         }
         
         return pin

@@ -20,6 +20,7 @@ The PhotoAlbumViewController class displays a MapView containing a single annota
 // 3. is there a way to use the fetched results controller to delete all Photo objects for a pin, instead of iterating all Photo objects in the pin and deleting them one at a time?
 // 4. An image has been downloaded and is available in memory to be rendered on a cell in PhotoAlbumViewController. Can I eliminate the delay between the time cell.stopActivityIndicator() is called in the PhotoAlbumViewController.configureCell method, and the time when the image is actually rendered for that cell? The delay can be a couple of seconds. I tried calling setNeedsDisplay() but that didn't seem to help.
 // 5. The bounds of the UIImageView in the PhotoAlbumCell are inconsistently reported as (0.0, 0.0, 128.0, 128.0) and (0.0, 0.0, 84.0, 84.0). When I make a call to self.imageView.center I get either 64.0 or 42.0 for both the x & y coordinates. If I get the former, then the activity indicator is positioned incorrectly on the bottom right quadrant of the cell. If I get the latter then the activity indicator is positioned correctly in the center of the cell. I hard coded  the center of the activity indicator to (42.0, 42.0) and it alwayas appears in the center of the cell. Any insight into why the center of my image view is inconsistantly reported? It doesn't seem right to hard code  the center value.
+// 6. [forum] Is instantiating a new NSManagedObject through an init method enough to cause it to be saved to the context, or must saveContext() be called on the managedObjectContext after the object is initialized to ensure it is persisted to the Core Data store?
 
 import UIKit
 import CoreData
@@ -135,7 +136,20 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                     // halt the activity indicator
                     self.stopActivityIndicator()
                     
-                    // TODO - report error to user
+                    // Report error to user. (extract info from NSError userInfo dictionary.)
+                    if let error = error {
+                        let errorString = error.localizedDescription
+                        var errorTitle = "Error"
+                        switch error.code {
+                        case VTError.ErrorCodes.JSON_PARSE_ERROR.rawValue:
+                            errorTitle = "Flickr Response Error"
+                        case VTError.ErrorCodes.FLICKR_REQUEST_ERROR.rawValue:
+                            errorTitle = "Flickr API Error"
+                        default:
+                            errorTitle = "Error"
+                        }
+                        VTAlert(viewController:self).displayErrorAlertView("error_title", message: error.localizedDescription)
+                    }
                 }
             }
         }
@@ -228,7 +242,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         if let pin = self.pin {
             fetchRequest.predicate = NSPredicate(format: "pin == %@", pin)
         } else {
-            assert(self.pin != nil, "self.pin == nil in PhotoAlbumViewController") // TODO
+            println("self.pin == nil in PhotoAlbumViewController")
         }
         
         // Add a sort descriptor to enforce a sort order on the results.
@@ -251,10 +265,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         println("fetchPhotos was called ")
         
         if let error = error {
-            println("Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
-            // TODO: Replace this implementation with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate.
-            abort()
+            VTAlert(viewController:self).displayErrorAlertView("Error retrieving photos", message: "Unresolved error in fetchedResultsController.performFetch \(error), \(error.userInfo)")
         }
     }
     
@@ -405,6 +416,7 @@ extension String {
     }
 }
 
+
 /* Set the layout of the UICollectionView cells. */
 extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
     
@@ -423,16 +435,11 @@ extension PhotoAlbumViewController : UICollectionViewDelegateFlowLayout {
     }
 }
 
-// TODO - no longer needed?
-/* Implement placeholder images to occupy cells while the final image is downloaded from Flickr. */
+
 extension PhotoAlbumViewController : flickrDelegate {
     
-    // Flickr reports the number of images that will be downloaded. Use this information to create placeholder images for each cell.
+    // Flickr reports the number of images that will be downloaded.
     func numberOfPhotosToReturn(flickr: Flickr, count: Int) {
         println("flickrDelegate protocol reports \(count) images will be downloaded.")
-        
-        // Create a Photo object for each url_m returned from the flickr instance and give each a default image.
-        
-        // Later when the actual images are returned match them by url_m with the placeholder objects and update the placeholder object instead of creating a new Photo object. This means returning url_m with the UIImage data. Perhaps I should just return url_m instead of UIImage data, and download the UIImage data from this class.
     }
 }

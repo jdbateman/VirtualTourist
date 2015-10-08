@@ -28,6 +28,15 @@ class CoreDataStackManager {
         return Static.instance
     }
     
+    /* true indicates a serious error occurred. Get error status info from  . false indicates no serious error has occurred. */
+    var bCoreDataSeriousError = false
+    
+    struct ErrorInfo {
+        var code: Int = 0
+        var message: String = ""
+    }
+    var seriousErrorInfo: ErrorInfo = ErrorInfo()
+    
     lazy var applicationDocumentsDirectory: NSURL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "self.JohnBateman.VirtualTourist" in the application's documents Application Support directory.
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
@@ -55,12 +64,12 @@ class CoreDataStackManager {
             dict[NSLocalizedFailureReasonErrorKey] = failureReason
             dict[NSUnderlyingErrorKey] = error
             error = NSError(domain: VTError.Constants.ERROR_DOMAIN, code: VTError.ErrorCodes.CORE_DATA_INIT_ERROR.rawValue, userInfo: dict)
-            // TODO: Replace this with code to handle the error appropriately.
-            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             NSLog("Unresolved error \(error), \(error!.userInfo)")
-            abort()
+            
+            // flag fatal Core Data error
+            self.seriousErrorInfo = ErrorInfo(code: VTError.ErrorCodes.CORE_DATA_INIT_ERROR.rawValue, message: "Failed to initialize the application's saved data")
+            self.bCoreDataSeriousError = true
         }
-        
         return coordinator
         }()
 

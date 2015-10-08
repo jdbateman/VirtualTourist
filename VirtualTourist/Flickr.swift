@@ -149,8 +149,9 @@ class Flickr {
                             var picturesToReturn = [UIImage]()
                             var dictionariesToReturn = [[String: AnyObject?]]()
                             
-                            let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
-                            // TODO: reenable: let numPhotosToFetch = photosArray.count
+                            //let numPhotosToFetch = min(/*totalPhotosVal*/ photosArray.count, Flickr.MAX_PHOTOS_TO_FETCH)
+                            // TODO: reenable: 
+                            let numPhotosToFetch = photosArray.count
                             
                             println("Flickr.getImageUrlsFromFlickrBySearchWithPage reports \(photosArray.count) photos found on page \(pageNumber).")
                             

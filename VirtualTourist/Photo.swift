@@ -15,7 +15,6 @@ import UIKit
 class Photo : NSManagedObject {
     
     struct InitKeys {
-        //static let imageData: String = "imageData"
         static let pin: String = "pin"
         static let imageUrl: String = "imageUrl"
         static let title: String = "title"
@@ -23,9 +22,6 @@ class Photo : NSManagedObject {
     }
     
     static let entityName = "Photo"
-    
-    /* JPEG image data for the Photo. */
-//    /*@NSManaged*/ var imageData: NSData? // TODO: cleanup imageData references in this file
     
     /* Pin object to which the image belongs */
     @NSManaged var pin: Pin?
@@ -53,7 +49,6 @@ class Photo : NSManagedObject {
         let entity = NSEntityDescription.entityForName("Photo", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
-//        imageData = dictionary[InitKeys.imageData] as? NSData
         pin = dictionary[InitKeys.pin] as? Pin
         imageUrl = dictionary[InitKeys.imageUrl] as? String
         title = dictionary[InitKeys.title] as? String
@@ -91,47 +86,31 @@ class Photo : NSManagedObject {
             }
         }
         
-//        // Try loading the data from Core Data.
-//        if let imageData = self.imageData {
-//            println("image loaded from core data")
-//            completion(success: true, error: nil, image: UIImage(data: imageData))
-//            return
-//        }
-
         // Load the image from the server asynchronously on a background queue.
         if let url = self.imageUrl {
             self.dowloadImageFrom(url) { success, error, theImage in
                 if success {
                     if let theImage = theImage {
-                        // retrieve the image data
-//                        let imageData = UIImageJPEGRepresentation(theImage, 1)
-//
-//                        // save the image data to the Photo property (Will be captured in Core Data on next saveContext)
-//                        self.imageData = imageData
-                        
-                        // save the image data to the file system
-                        if let id = self.id {
-                            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
-                            dispatch_async(backgroundQueue, {
-                                self.saveImageToFileSystem(id, image: theImage)
-                            })
-                        }
-                        
-                        // save the image to the image cache
-                        if let url = self.imageUrl {
-                            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
-                            dispatch_async(backgroundQueue, {
-                                NSCache.sharedInstance.setObject(theImage, forKey: url)
-                            })
-                        }
+                        self.cacheImageAndWriteToFile(theImage)
                     }
                     println("image downloaded from server")
                     completion(success: true, error: nil, image: theImage)
                     return
                 } else {
-                    // TODO - handle the failed download by retrying once?
-                    let vtError = VTError(errorString: "Image download from Flickr service failed.", errorCode: VTError.ErrorCodes.FLICKR_FILE_DOWNLOAD_ERROR)
-                    completion(success: false, error: vtError.error, image: nil)
+                    // The download failed. Retry the download once.
+                    self.dowloadImageFrom(url) { success, error, theImage in
+                        if success {
+                            if let theImage = theImage {
+                                self.cacheImageAndWriteToFile(theImage)
+                            }
+                            println("image downloaded from server")
+                            completion(success: true, error: nil, image: theImage)
+                            return
+                        } else {
+                            let vtError = VTError(errorString: "Image download from Flickr service failed.", errorCode: VTError.ErrorCodes.FLICKR_FILE_DOWNLOAD_ERROR)
+                            completion(success: false, error: vtError.error, image: nil)
+                        }
+                    }
                 }
             }
         }
@@ -148,7 +127,6 @@ class Photo : NSManagedObject {
             
             // create a new Photo instance
             var dict = [String: AnyObject]()
-//            dict[Photo.InitKeys.imageData] = nil // UIImageJPEGRepresentation(image, 1)
             dict[Photo.InitKeys.pin] = forPin
             
             // set the image metaData obtained from the flickr api for this photo
@@ -232,6 +210,25 @@ class Photo : NSManagedObject {
 
 /* Image management helper functions */
 extension Photo {
+    
+    /* Save the image to the local cache and file system. */
+    func cacheImageAndWriteToFile(theImage: UIImage) {
+        // save the image data to the file system
+        if let id = self.id {
+            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+            dispatch_async(backgroundQueue, {
+                self.saveImageToFileSystem(id, image: theImage)
+            })
+        }
+        
+        // save the image to the image cache
+        if let url = self.imageUrl {
+            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+            dispatch_async(backgroundQueue, {
+                NSCache.sharedInstance.setObject(theImage, forKey: url)
+            })
+        }
+    }
     
     /* Save image to a file with the name filename on the filesystem in the Documents directory. */
     func saveImageToFileSystem(filename: String, image: UIImage?) {
