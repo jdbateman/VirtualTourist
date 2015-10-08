@@ -14,7 +14,6 @@
 		9E8FB9E81BA91BA400A8E099 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */; };
 		9E8FB9EB1BA91BA400A8E099 /* VirtualTourist.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9E91BA91BA400A8E099 /* VirtualTourist.xcdatamodeld */; };
 		9E8FB9ED1BA91BA400A8E099 /* TravelLocationsMapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9EC1BA91BA400A8E099 /* TravelLocationsMapViewController.swift */; };
-		9E8FB9EF1BA91BA400A8E099 /* DetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8FB9EE1BA91BA400A8E099 /* DetailViewController.swift */; };
 		9E8FB9F21BA91BA400A8E099 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9E8FB9F01BA91BA400A8E099 /* Main.storyboard */; };
 		9E8FB9F41BA91BA400A8E099 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9E8FB9F31BA91BA400A8E099 /* Images.xcassets */; };
 		9E8FB9F71BA91BA400A8E099 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9E8FB9F51BA91BA400A8E099 /* LaunchScreen.xib */; };
@@ -50,7 +49,6 @@
 		9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9E8FB9EA1BA91BA400A8E099 /* VirtualTourist.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = VirtualTourist.xcdatamodel; sourceTree = "<group>"; };
 		9E8FB9EC1BA91BA400A8E099 /* TravelLocationsMapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelLocationsMapViewController.swift; sourceTree = "<group>"; };
-		9E8FB9EE1BA91BA400A8E099 /* DetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViewController.swift; sourceTree = "<group>"; };
 		9E8FB9F11BA91BA400A8E099 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9E8FB9F31BA91BA400A8E099 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		9E8FB9F61BA91BA400A8E099 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
@@ -167,7 +165,6 @@
 			isa = PBXGroup;
 			children = (
 				9E8FB9EC1BA91BA400A8E099 /* TravelLocationsMapViewController.swift */,
-				9E8FB9EE1BA91BA400A8E099 /* DetailViewController.swift */,
 				9ED979421BAE07E4002FBE65 /* PhotoAlbumViewController.swift */,
 			);
 			name = ViewControllers;
@@ -289,7 +286,6 @@
 				9E8FB9ED1BA91BA400A8E099 /* TravelLocationsMapViewController.swift in Sources */,
 				9E8FBA121BAB1D3000A8E099 /* Pin.swift in Sources */,
 				9E8FBA0D1BA9BDF500A8E099 /* CoreDataStackManager.swift in Sources */,
-				9E8FB9EF1BA91BA400A8E099 /* DetailViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
