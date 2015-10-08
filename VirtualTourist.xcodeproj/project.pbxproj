@@ -110,11 +110,11 @@
 				9E8FB9E71BA91BA400A8E099 /* AppDelegate.swift */,
 				9E8FB9F01BA91BA400A8E099 /* Main.storyboard */,
 				9ED979441BAE2ED1002FBE65 /* PhotoAlbumCell.swift */,
+				9E8819B81BC5750700817D91 /* VTAlert.swift */,
 				9E8819B41BC476B300817D91 /* VTError.swift */,
 				9E8FBA101BA9CEF700A8E099 /* ViewControllers */,
 				9E8FBA0E1BA9BE0C00A8E099 /* Model */,
 				9E8FB9E51BA91BA400A8E099 /* Supporting Files */,
-				9E8819B81BC5750700817D91 /* VTAlert.swift */,
 			);
 			path = VirtualTourist;
 			sourceTree = "<group>";
