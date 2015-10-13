@@ -35,9 +35,9 @@ Displays images associated with the 2D coordinate of the selected annotation. Se
 
 ### Asynchronous download
 
-Images are downloaded on demand in a background queue. Images are cached in memory. Image data is stored locally on the filesystem and a reference is persisted in the core data store.
-
 ![Activity indicator](/../screenshots/VirtualTourist_screenshot_download_activity.png?raw=true "Activity indicator")
+
+Images are prefetched when the annotation is dropped. The images are downloaded on demand in a background queue. Images are cached in memory for fast retrieval later. Image data is stored locally on the filesystem and a reference is persisted in the core data store.
 
 ![Async download](/../screenshots/VirtualToursit_screenshot_async_download.png?raw=true "Async download")
 
