@@ -261,7 +261,9 @@ extension Flickr {
             success, error, metaData, nextPage in
             
             // Update the page number to request for this coordinate when the next flickr request is made.
-            pin.flickrPage = NSNumber(int: nextPage)
+            dispatch_async(dispatch_get_main_queue()) {
+                pin.flickrPage = NSNumber(int: nextPage)
+            }
             
             if success == true {
                 completionHandler(success: true, error: nil, imageMetadata: metaData)

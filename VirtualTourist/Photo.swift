@@ -162,10 +162,14 @@ class Photo : NSManagedObject {
                     
                     // Acquire the image data for this Photo object.
                     photo.getImage( { success, error, image in
-                        if success {
-                            println("successfully downloaded image \(photo.id): \(photo.title)")
-                        } else {
-                            println("error acquiring image \(photo.id): \(photo.title)")
+                        
+                        // Ensure access of the managed object happpens on the main queue
+                        dispatch_async(dispatch_get_main_queue()) {
+                            if success {
+                                println("successfully downloaded image \(photo.id): \(photo.title)")
+                            } else {
+                                println("error acquiring image \(photo.id): \(photo.title)")
+                            }
                         }
                     })
                 }
@@ -217,12 +221,17 @@ extension Photo {
     
     /* Save the image to the local cache and file system. */
     func cacheImageAndWriteToFile(theImage: UIImage) {
-        // save the image data to the file system
-        if let id = self.id {
-            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
-            dispatch_async(backgroundQueue, {
-                self.saveImageToFileSystem(id, image: theImage)
-            })
+        
+        // Ensure access of the managed object happpens on the main queue
+        dispatch_async(dispatch_get_main_queue()) {
+            
+            // save the image data to the file system
+            if let id = self.id {
+                let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+                dispatch_async(backgroundQueue, {
+                    self.saveImageToFileSystem(id, image: theImage)
+                })
+            }
         }
         
         // save the image to the image cache in memory
@@ -231,11 +240,16 @@ extension Photo {
     
     /* Save the image data to the image cache in memory. */
     func cacheImage(theImage: UIImage) {
-        if let url = self.imageUrl {
-            let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
-            dispatch_async(backgroundQueue, {
-                NSCache.sharedInstance.setObject(theImage, forKey: url)
-            })
+        
+        // Ensure access of the managed object happpens on the main queue
+        dispatch_async(dispatch_get_main_queue()) {
+            
+            if let url = self.imageUrl {
+                let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+                dispatch_async(backgroundQueue, {
+                    NSCache.sharedInstance.setObject(theImage, forKey: url)
+                })
+            }
         }
     }
     
