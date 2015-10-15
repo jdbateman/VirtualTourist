@@ -372,9 +372,10 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // Acquire the image from the Photo object.
         photo.getImage( { success, error, image in
             if success {
-                cell.imageView.image = image
-                cell.stopActivityIndicator()
-                //self.collectionView.setNeedsDisplay()
+                dispatch_async(dispatch_get_main_queue()) {
+                    cell.stopActivityIndicator()
+                    cell.imageView.image = image
+                }
             } else {
                 cell.stopActivityIndicator()
             }
