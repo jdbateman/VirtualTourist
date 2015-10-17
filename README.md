@@ -1,6 +1,10 @@
 # VirtualTourist
 This Swift app for iPhone (iOS 8) let's you navigate a map, drop pins on a map, then select a pin to view and save recent Flickr pictures for that location. Uses CoreData, Flickr REST API.
 
+## Reviewer comments
+* "this was a high quality project with exceeds specification marks and I particularly liked your coding style."
+* "You have handled the downloading of images in a very good manner saving and caching them correctly"
+
 ## Implementation highlights
 * MVC pattern
 * annotations, images, and map region are persisted with an sqlite Core Data store
